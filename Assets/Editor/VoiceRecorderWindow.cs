@@ -18,6 +18,8 @@ public class VoiceRecorderWindow : EditorWindow
 	Vector2 scroll;
 	AudioSource preview;
 	string message = "";
+	bool silentMic;          // the last recording was total silence: Unity is not allowed to use the microphone
+	float level;             // how loud you are right now (0..1), for the green bar
 
 	[MenuItem("Tools/Tosakana/Record Voices")]
 	public static void Open()
@@ -45,7 +47,20 @@ public class VoiceRecorderWindow : EditorWindow
 			return;
 		// Stop by itself after 8 seconds
 		if (!Microphone.IsRecording(device))
+		{
 			StopRecording();
+			return;
+		}
+		// Live sound level from the last bit of the recording
+		int pos = Microphone.GetPosition(device);
+		if (micClip != null && pos > 512)
+		{
+			float[] last = new float[512];
+			micClip.GetData(last, pos - 512);
+			float peak = 0;
+			foreach (float v in last) peak = Mathf.Max(peak, Mathf.Abs(v));
+			level = Mathf.Max(peak, level * 0.85f);
+		}
 		Repaint();
 	}
 
@@ -73,8 +88,20 @@ public class VoiceRecorderWindow : EditorWindow
 			device = devices[pick];
 
 		EditorGUILayout.LabelField("Recorded: " + done + " / " + lines.Count, EditorStyles.boldLabel);
-		if (message != "")
-			EditorGUILayout.LabelField(message, EditorStyles.miniLabel);
+		if (recordingKey != null)
+		{
+			Rect bar = EditorGUILayout.GetControlRect(false, 22);
+			EditorGUI.ProgressBar(bar, Mathf.Clamp01(level * 3f), level > 0.01f ? "I can hear you!" : "Speak now... (the bar should move)");
+		}
+		if (silentMic)
+		{
+			EditorGUILayout.HelpBox("Unity hears total silence from the microphone. Your Mac is probably not letting Unity use it.\n" +
+				"1. Click the button below.  2. Turn ON \"Unity\" in the Microphone list.  3. Quit Unity and open it again.", MessageType.Error);
+			if (GUILayout.Button("Open Mac microphone settings", GUILayout.Height(28)))
+				Application.OpenURL("x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone");
+		}
+		else if (message != "")
+			EditorGUILayout.LabelField(message, EditorStyles.wordWrappedLabel);
 
 		scroll = EditorGUILayout.BeginScrollView(scroll);
 		string group = null;
@@ -123,6 +150,7 @@ public class VoiceRecorderWindow : EditorWindow
 	{
 		recordingKey = line.Key;
 		micClip = Microphone.Start(device, false, MaxSeconds, Rate);
+		level = 0;
 		message = "Recording... say: " + line.lingala;
 	}
 
@@ -141,7 +169,13 @@ public class VoiceRecorderWindow : EditorWindow
 		}
 		float[] samples = new float[length * micClip.channels];
 		micClip.GetData(samples, 0);
-		message = Save(key, samples, Rate) ? "Saved " + key + ".wav" : "It was too quiet. Try again a little closer to the microphone.";
+		float peak = 0;
+		foreach (float v in samples) peak = Mathf.Max(peak, Mathf.Abs(v));
+		silentMic = peak < 0.0005f;   // real rooms are never this quiet: it is the Mac blocking the microphone
+		if (silentMic)
+			message = "";
+		else
+			message = Save(key, samples, Rate) ? "Saved " + key + ".wav ✔" : "It was a bit quiet. Try again a little closer to the microphone, and speak louder.";
 	}
 
 	// Saves a recording and tells Unity about it. Returns false if it was silent.

@@ -33,9 +33,9 @@ public static class WavFile
 	{
 		float peak = 0;
 		foreach (float s in samples) peak = Mathf.Max(peak, Mathf.Abs(s));
-		if (peak < 0.005f)
+		if (peak < 0.002f)
 			return new float[0];
-		float threshold = Mathf.Max(0.02f, peak * 0.08f);
+		float threshold = Mathf.Max(0.001f, peak * 0.1f);   // relative to how loud you are
 		int start = 0, end = samples.Length - 1;
 		while (start < end && Mathf.Abs(samples[start]) < threshold) start++;
 		while (end > start && Mathf.Abs(samples[end]) < threshold) end--;
