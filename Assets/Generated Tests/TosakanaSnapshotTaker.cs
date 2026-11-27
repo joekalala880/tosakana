@@ -292,6 +292,31 @@ public class TosakanaSnapshotTaker : MonoBehaviour
 		missions.StartMission(missions.Find("Matonge"), missions.Find("Lemba"));
 		yield return new WaitForSeconds(0.3f);
 		Save(cam, rt, folder, "30_mission_card");
+
+		// Version 11: the street look, the radio, sunset and night
+		DayNight dn = game.GetComponent<DayNight>();
+		missions.briefingPanel.SetActive(false);
+		dn.SetHour(17.6f);
+		myTaxi.Teleport(new Vector3(-20f, 0f, 26.7f), 90f);
+		game.GetComponent<CarRadio>().NextStation();
+		rig.SetYaw(60f);
+		rig.SetPitch(10f);
+		yield return new WaitForSeconds(0.5f);
+		Save(cam, rt, folder, "31_sunset_radio");
+		dn.SetHour(22f);
+		myTaxi.Teleport(new Vector3(230f, 0f, 26.7f), 270f);
+		rig.SetYaw(240f);
+		rig.SetPitch(8f);
+		yield return new WaitForSeconds(0.5f);
+		Save(cam, rt, folder, "32_kinshasa_at_night");
+		game.ToggleCar();
+		game.player.Teleport(new Vector3(-58f, 0.05f, 21.4f), 90f);
+		game.ChangeClothes();
+		dn.SetHour(10f);
+		rig.SetYaw(270f);
+		rig.SetPitch(6f);
+		yield return new WaitForSeconds(2.2f);
+		Save(cam, rt, folder, "33_street_look_leopards");
 		Finished = true;
 	}
 

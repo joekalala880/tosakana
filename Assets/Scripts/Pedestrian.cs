@@ -290,7 +290,7 @@ public class Pedestrian : MonoBehaviour
 			greetCooldown = 25f;
 			nextGreetTime = Time.time + 4f;
 			if (Random.value < 0.6f)
-				Voice.Say(gameObject, Lingala.Pick(carriesBasin ? Lingala.SellerSays : Lingala.Greetings));
+				Voice.Say(gameObject, Lingala.Pick(carriesBasin ? Lingala.SellerSays : Lingala.Greetings), false);   // only if nobody is talking
 		}
 	}
 
@@ -299,7 +299,7 @@ public class Pedestrian : MonoBehaviour
 	{
 		talkTimer = 3.5f;
 		Lingala.Line[] answers = carriesBasin && Random.value < 0.5f ? Lingala.SellerSays : Lingala.Answers[lineIndex % Lingala.Answers.Length];
-		Voice.Say(gameObject, Lingala.Pick(answers));
+		Voice.Say(gameObject, Lingala.Pick(answers));   // answering you: waits for you to finish
 	}
 
 	void ArriveAtCorner()

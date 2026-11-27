@@ -44,6 +44,8 @@ before time runs out. Every job pays money.
 | Left click / R | punch (or shoot with the pistol) |
 | Q | fists / pistol |
 | V | view from inside the car / from behind |
+| N | next radio station (in a car) |
+| O | change clothes: sapeur suit / street look |
 | M | show the mission card again |
 | In a plane | W/S speed · A/D turn · ↑ or Space climb · ↓ or C dive |
 | Esc | free the mouse (click to take it back) |
@@ -124,6 +126,13 @@ before time runs out. Every job pays money.
 - A **direction arrow** at the top of the screen always points to your mission, with the place and the distance
 - Every mission starts with a **mission card**: what to pick up (fufu, medicine, a wedding cake...), for whom, where to bring it, the pay, and how many more jobs until you are King of Kinshasa. **M** shows it again
 - The mission box says **STEP 1 of 2** (pick up) and **STEP 2 of 2** (deliver); missions pay more (about 20 jobs to reach $25,000)
+
+## Version 11 adds: day and night, the car radio, flags and new clothes 🌇📻🇨🇩
+- **Day and night**: the sun moves across the sky (one day = 12 minutes). Sunset turns the sky orange; at night the windows glow, **street lamps** shine on the boulevard, and your car turns on its **headlights**. A clock shows the time
+- **Car radio**: it plays when you get in a car. **N** = next station. *Tosakana FM* plays rumba (sebene guitar, bass, drums) that the game makes itself
+- **Your own music**: put MP3 songs you own (for example Fally Ipupa, Koffi Olomide, JB Mpiana) in `Assets/Resources/Radio/Rumba`, `Ndombolo` or `Mix`. They become the stations *Kin Rumba FM*, *Ndombolo Radio* and *Mboka Mix*. This folder is **not** put on GitHub, because the songs belong to the artists
+- **DRC flags** wave in the wind at every commune, the airport, the stadium, the port and Place du 30 Juin
+- **O** = change clothes: the sapeur suit, or the **street look** (Leopards jersey, jeans, white sneakers, red cap). You wear the same clothes when you sit in the car
 
 ## How to open
 Open the folder in Unity Hub (Unity 2022.3). The game is in `Assets/Scenes/Main.unity`. Press ▶ Play.

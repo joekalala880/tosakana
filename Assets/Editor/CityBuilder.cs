@@ -55,7 +55,7 @@ public static class CityBuilder
 		mapPlayer, mapTarget, flagMat, lightMat, tailMat, fieldMat, farBank;
 	static Material[] houseMats, brightMats, towerMats, carMats, stallMats, fruitMats;
 	static PhysicMaterial slippery;
-	static Material sirenRed, sirenBlue, policeWhite, rust, carGlass, seatMat;
+	static Material sirenRed, sirenBlue, policeWhite, rust, carGlass, seatMat, leopardsBlue, jeans, lampGlow;
 	static Texture2D starTexture;
 
 	[MenuItem("Tools/Tosakana/Build City")]
@@ -146,6 +146,23 @@ public static class CityBuilder
 		game.cameraRig = cam.gameObject.AddComponent<CameraRig>();
 		game.cameraRig.target = player.transform;
 
+		// Day and night: the sun moves, windows glow at night, street lamps along the boulevard, your car's headlights
+		DayNight dn = gameGo.AddComponent<DayNight>();
+		dn.sun = Object.FindObjectOfType<Light>();
+		dn.lampGlow = lampGlow;
+		GameObject headlights = new GameObject("Your Car Headlights");
+		Light hl = headlights.AddComponent<Light>();
+		hl.type = LightType.Spot;
+		hl.range = 45f;
+		hl.spotAngle = 70f;
+		hl.intensity = 2.2f;
+		hl.color = new Color(1f, 0.95f, 0.8f);
+		hl.enabled = false;
+		dn.carLights = hl;
+		StreetLamps();
+		Flags();
+		gameGo.AddComponent<CarRadio>();
+
 		MakeMarker(missions);
 		MakeTargetArrow(gameGo);
 		RenderTexture mapTexture = MakeMiniMap(map);
@@ -189,6 +206,9 @@ public static class CityBuilder
 		concrete = Mat("Concrete", new Color(0.8f, 0.78f, 0.74f), 0.1f);
 		roofMat = Mat("Roof", new Color(0.32f, 0.3f, 0.3f), 0.1f);
 		rust = Mat("Tin Roof Rust", new Color(0.55f, 0.32f, 0.2f), 0.35f);
+		leopardsBlue = Mat("Leopards Blue", new Color(0.0f, 0.55f, 0.95f), 0.3f);
+		jeans = Mat("Jeans", new Color(0.18f, 0.28f, 0.5f), 0.15f);
+		lampGlow = Unlit("Lamp Glow", new Color(0.55f, 0.52f, 0.45f));
 		metal = Mat("Metal", new Color(0.55f, 0.62f, 0.68f), 0.4f);
 		darkMetal = Mat("DarkMetal", new Color(0.28f, 0.33f, 0.4f), 0.3f);
 		trunk = Mat("PalmTrunk", new Color(0.5f, 0.38f, 0.25f), 0.1f);
@@ -536,6 +556,7 @@ public static class CityBuilder
 	{
 		bool northSide = marker.z > c.z;
 		Sign(block, name.ToUpper(), c + new Vector3(0, 0, northSide ? 21f : -21f), northSide ? 0f : 180f, signGreen, "Bokomi malamu!  ·  Welcome!");
+		FlagPole(block, c + new Vector3(9f, 0, northSide ? 20f : -20f), 9f);
 		places.Add(MakePlace(name, c, 0f, marker));
 	}
 
@@ -631,6 +652,12 @@ public static class CityBuilder
 		GameObject back = Object.Instantiate(front, block);
 		back.name = "DRC Flag (back)";
 		back.transform.rotation = Quaternion.Euler(0, 180, 0);
+		Transform plazaFlag = new GameObject("Big DRC Flag").transform;
+		plazaFlag.SetParent(block);
+		plazaFlag.position = c + new Vector3(0, 13.8f, 0);
+		front.transform.SetParent(plazaFlag, true);
+		back.transform.SetParent(plazaFlag, true);
+		plazaFlag.gameObject.AddComponent<FlagWave>().amount = 8f;
 
 		for (int k = 0; k < 8; k++)
 		{
@@ -749,6 +776,63 @@ public static class CityBuilder
 			Cube(river, "Far Building", Pick(houseMats), new Vector3(Range(-900, 1800), h / 2f + 3f, RiverZ + Range(680, 760)), new Vector3(Range(8, 20), h, Range(8, 20)), false);
 		}
 		Sign(river, "FLEUVE CONGO", new Vector3(30, 0, RiverZ - 1.5f), 180f, signGreen);
+	}
+
+	// Street lamps along both boulevards (their bulbs glow at night)
+	static void StreetLamps()
+	{
+		Transform lamps = new GameObject("Street Lamps").transform;
+		lamps.SetParent(city);
+		for (float x = -189; x <= CityEast - 10; x += 29)
+		{
+			bool crossing = false;
+			for (int k = 0; k <= BlocksX; k++)
+				if (Mathf.Abs(x - (FirstRoad + k * Pitch)) < 9f) crossing = true;
+			if (crossing) continue;
+			foreach (float side in new[] { -1f, 1f })
+			{
+				Vector3 at = new Vector3(x + side * 3f, 0, Boulevard + side * 7.4f);
+				Shape(lamps, PrimitiveType.Cylinder, "Lamp Post", darkMetal, at + Vector3.up * 3.5f, new Vector3(0.14f, 3.5f, 0.14f), Vector3.zero, false);
+				Shape(lamps, PrimitiveType.Cube, "Lamp Arm", darkMetal, at + new Vector3(0, 7f, -side * 0.8f), new Vector3(0.12f, 0.12f, 1.8f), Vector3.zero, false);
+				GameObject bulb = Shape(lamps, PrimitiveType.Sphere, "Lamp Bulb", lampGlow, at + new Vector3(0, 6.85f, -side * 1.6f), new Vector3(0.6f, 0.35f, 0.6f), Vector3.zero, false);
+				bulb.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+			}
+		}
+	}
+
+	// DRC flags that wave: at the airport, the stadium and the port (the communes get theirs with their sign)
+	static void Flags()
+	{
+		Transform flags = new GameObject("DRC Flags").transform;
+		flags.SetParent(city);
+		Vector3[] spots =
+		{
+			new Vector3(770f, 0, 104f), new Vector3(930f, 0, 104f),           // airport terminal
+			new Vector3(104f, 0, -95f), new Vector3(128f, 0, -95f),           // Stade des Martyrs
+			new Vector3(-70f, 0, 138f), new Vector3(-46f, 0, 138f),           // Port de Ngobila
+		};
+		foreach (Vector3 spot in spots)
+			FlagPole(flags, spot, 9f);
+	}
+
+	static void FlagPole(Transform parent, Vector3 pos, float height)
+	{
+		Shape(parent, PrimitiveType.Cylinder, "Flag Pole", white, pos + Vector3.up * (height / 2f), new Vector3(0.12f, height / 2f, 0.12f), Vector3.zero, false);
+		Transform pivot = new GameObject("DRC Flag").transform;
+		pivot.SetParent(parent);
+		pivot.position = pos + Vector3.up * (height - 1.1f);
+		foreach (float side in new[] { 0f, 180f })
+		{
+			GameObject q = GameObject.CreatePrimitive(PrimitiveType.Quad);
+			Object.DestroyImmediate(q.GetComponent<Collider>());
+			q.name = "Flag Cloth";
+			q.transform.SetParent(pivot, false);
+			q.transform.localPosition = new Vector3(1.55f, 0, 0);
+			q.transform.localRotation = Quaternion.Euler(0, side, 0);
+			q.transform.localScale = new Vector3(3f, 2f, 1f);
+			q.GetComponent<Renderer>().sharedMaterial = flagMat;
+		}
+		pivot.gameObject.AddComponent<FlagWave>();
 	}
 
 	// ---------- N'djili airport ----------
@@ -1105,22 +1189,45 @@ public static class CityBuilder
 		Material hat = Mat("Sapeur Hat", new Color(0.96f, 0.92f, 0.8f), 0.3f);
 		Material gold = Mat("Gold", new Color(1f, 0.78f, 0.2f), 0.9f);
 		Material shoes = Mat("Shoes", new Color(0.35f, 0.18f, 0.08f), 0.8f);
-		Part(p, PrimitiveType.Capsule, jacket, new Vector3(0, 1.2f, 0), new Vector3(0.56f, 0.42f, 0.4f)).name = "Jacket";
-		Part(p, PrimitiveType.Cube, white, new Vector3(0, 1.36f, 0.16f), new Vector3(0.16f, 0.26f, 0.06f)).name = "Shirt";
-		Part(p, PrimitiveType.Cube, yellow, new Vector3(0, 1.3f, 0.2f), new Vector3(0.06f, 0.3f, 0.03f)).name = "Tie";
-		Part(p, PrimitiveType.Cube, gold, new Vector3(0, 1.47f, 0.17f), new Vector3(0.26f, 0.03f, 0.04f)).name = "Gold Chain";
+		List<GameObject> sap = new List<GameObject>(), str = new List<GameObject>();
+		sap.Add(Named(Part(p, PrimitiveType.Capsule, jacket, new Vector3(0, 1.2f, 0), new Vector3(0.56f, 0.42f, 0.4f)), "Jacket"));
+		sap.Add(Named(Part(p, PrimitiveType.Cube, white, new Vector3(0, 1.36f, 0.16f), new Vector3(0.16f, 0.26f, 0.06f)), "Shirt"));
+		sap.Add(Named(Part(p, PrimitiveType.Cube, yellow, new Vector3(0, 1.3f, 0.2f), new Vector3(0.06f, 0.3f, 0.03f)), "Tie"));
+		sap.Add(Named(Part(p, PrimitiveType.Cube, gold, new Vector3(0, 1.47f, 0.17f), new Vector3(0.26f, 0.03f, 0.04f)), "Gold Chain"));
 		Part(p, PrimitiveType.Sphere, skin, new Vector3(0, 1.72f, 0), Vector3.one * 0.34f);
-		Part(p, PrimitiveType.Cube, black, new Vector3(0, 1.76f, 0.15f), new Vector3(0.28f, 0.07f, 0.05f)).name = "Sunglasses";
-		Part(p, PrimitiveType.Cylinder, hat, new Vector3(0, 1.88f, 0), new Vector3(0.52f, 0.015f, 0.52f)).name = "Hat Brim";
-		Part(p, PrimitiveType.Cylinder, hat, new Vector3(0, 1.97f, 0), new Vector3(0.3f, 0.09f, 0.3f)).name = "Hat";
-		Part(p, PrimitiveType.Cylinder, black, new Vector3(0, 1.92f, 0), new Vector3(0.31f, 0.025f, 0.31f)).name = "Hat Band";
+		sap.Add(Named(Part(p, PrimitiveType.Cube, black, new Vector3(0, 1.76f, 0.15f), new Vector3(0.28f, 0.07f, 0.05f)), "Sunglasses"));
+		sap.Add(Named(Part(p, PrimitiveType.Cylinder, hat, new Vector3(0, 1.88f, 0), new Vector3(0.52f, 0.015f, 0.52f)), "Hat Brim"));
+		sap.Add(Named(Part(p, PrimitiveType.Cylinder, hat, new Vector3(0, 1.97f, 0), new Vector3(0.3f, 0.09f, 0.3f)), "Hat"));
+		sap.Add(Named(Part(p, PrimitiveType.Cylinder, black, new Vector3(0, 1.92f, 0), new Vector3(0.31f, 0.025f, 0.31f)), "Hat Band"));
+		// The street look: Leopards (DRC national team) jersey, jeans, white sneakers, a red cap
+		str.Add(Named(Part(p, PrimitiveType.Capsule, leopardsBlue, new Vector3(0, 1.2f, 0), new Vector3(0.55f, 0.42f, 0.39f)), "Leopards Jersey"));
+		GameObject band = Part(p, PrimitiveType.Cube, red, new Vector3(0, 1.22f, 0.19f), new Vector3(0.5f, 0.09f, 0.02f));
+		band.transform.localRotation = Quaternion.Euler(0, 0, 30f);
+		str.Add(Named(band, "Jersey Stripe"));
+		str.Add(Named(Part(p, PrimitiveType.Cube, yellow, new Vector3(0, 1.32f, 0.195f), new Vector3(0.09f, 0.09f, 0.02f)), "Jersey Star"));
+		str.Add(Named(Part(p, PrimitiveType.Sphere, red, new Vector3(0, 1.83f, -0.01f), new Vector3(0.36f, 0.17f, 0.36f)), "Cap"));
+		str.Add(Named(Part(p, PrimitiveType.Cube, red, new Vector3(0, 1.82f, 0.2f), new Vector3(0.22f, 0.025f, 0.16f)), "Cap Peak"));
 
 		pc.leftLeg = Limb(p, "Left Leg", new Vector3(-0.13f, 0.88f, 0), new Vector3(0.18f, 0.88f, 0.2f), trousers);
 		pc.rightLeg = Limb(p, "Right Leg", new Vector3(0.13f, 0.88f, 0), new Vector3(0.18f, 0.88f, 0.2f), trousers);
 		foreach (Transform leg in new[] { pc.leftLeg, pc.rightLeg })
-			Part(leg.gameObject, PrimitiveType.Cube, shoes, new Vector3(0, -0.84f, 0.06f), new Vector3(0.2f, 0.09f, 0.32f)).name = "Shoe";
+		{
+			sap.Add(leg.GetChild(0).gameObject);
+			sap.Add(Named(Part(leg.gameObject, PrimitiveType.Cube, shoes, new Vector3(0, -0.84f, 0.06f), new Vector3(0.2f, 0.09f, 0.32f)), "Shoe"));
+			str.Add(Named(Part(leg.gameObject, PrimitiveType.Cube, jeans, new Vector3(0, -0.44f, 0), new Vector3(0.19f, 0.88f, 0.21f)), "Jeans"));
+			str.Add(Named(Part(leg.gameObject, PrimitiveType.Cube, white, new Vector3(0, -0.84f, 0.06f), new Vector3(0.21f, 0.1f, 0.32f)), "Sneaker"));
+		}
 		pc.leftArm = Limb(p, "Left Arm", new Vector3(-0.36f, 1.45f, 0), new Vector3(0.14f, 0.62f, 0.16f), jacket);
 		pc.rightArm = Limb(p, "Right Arm", new Vector3(0.36f, 1.45f, 0), new Vector3(0.14f, 0.62f, 0.16f), jacket);
+		foreach (Transform arm in new[] { pc.leftArm, pc.rightArm })
+		{
+			sap.Add(arm.GetChild(0).gameObject);
+			str.Add(Named(Part(arm.gameObject, PrimitiveType.Cube, skin, new Vector3(0, -0.31f, 0), new Vector3(0.12f, 0.62f, 0.14f)), "Bare Arm"));
+			str.Add(Named(Part(arm.gameObject, PrimitiveType.Cube, leopardsBlue, new Vector3(0, -0.08f, 0), new Vector3(0.15f, 0.18f, 0.17f)), "Jersey Sleeve"));
+		}
+		PlayerLooks looks = p.AddComponent<PlayerLooks>();
+		looks.sapeurParts = sap.ToArray();
+		looks.streetParts = str.ToArray();
 		foreach (Transform arm in new[] { pc.leftArm, pc.rightArm })
 			Part(arm.gameObject, PrimitiveType.Sphere, skin, new Vector3(0, -0.66f, 0), Vector3.one * 0.13f).name = "Hand";
 		Part(pc.leftArm.gameObject, PrimitiveType.Cube, gold, new Vector3(0, -0.58f, 0), new Vector3(0.16f, 0.05f, 0.18f)).name = "Gold Watch";
@@ -1149,15 +1256,26 @@ public static class CityBuilder
 		Material jacket = Mat("Sapeur Jacket", new Color(0.88f, 0.16f, 0.42f), 0.35f);
 		Material hat = Mat("Sapeur Hat", new Color(0.96f, 0.92f, 0.8f), 0.3f);
 		float x = -0.45f;
-		Part(you, PrimitiveType.Capsule, jacket, new Vector3(x, 1.42f, -0.35f), new Vector3(0.46f, 0.3f, 0.32f));
-		Part(you, PrimitiveType.Cube, yellow, new Vector3(x, 1.45f, -0.18f), new Vector3(0.05f, 0.22f, 0.02f));
+		List<GameObject> sap = new List<GameObject>(), str = new List<GameObject>();
+		sap.Add(Part(you, PrimitiveType.Capsule, jacket, new Vector3(x, 1.42f, -0.35f), new Vector3(0.46f, 0.3f, 0.32f)));
+		sap.Add(Part(you, PrimitiveType.Cube, yellow, new Vector3(x, 1.45f, -0.18f), new Vector3(0.05f, 0.22f, 0.02f)));
 		Part(you, PrimitiveType.Sphere, skin, new Vector3(x, 1.64f, -0.33f), Vector3.one * 0.26f);
-		Part(you, PrimitiveType.Cube, black, new Vector3(x, 1.67f, -0.21f), new Vector3(0.22f, 0.05f, 0.04f));
-		Part(you, PrimitiveType.Cylinder, hat, new Vector3(x, 1.75f, -0.33f), new Vector3(0.4f, 0.012f, 0.4f));
-		Part(you, PrimitiveType.Cylinder, hat, new Vector3(x, 1.8f, -0.33f), new Vector3(0.24f, 0.05f, 0.24f));
-		Part(you, PrimitiveType.Cylinder, black, new Vector3(x, 1.77f, -0.33f), new Vector3(0.25f, 0.015f, 0.25f));
+		sap.Add(Part(you, PrimitiveType.Cube, black, new Vector3(x, 1.67f, -0.21f), new Vector3(0.22f, 0.05f, 0.04f)));
+		sap.Add(Part(you, PrimitiveType.Cylinder, hat, new Vector3(x, 1.75f, -0.33f), new Vector3(0.4f, 0.012f, 0.4f)));
+		sap.Add(Part(you, PrimitiveType.Cylinder, hat, new Vector3(x, 1.8f, -0.33f), new Vector3(0.24f, 0.05f, 0.24f)));
+		sap.Add(Part(you, PrimitiveType.Cylinder, black, new Vector3(x, 1.77f, -0.33f), new Vector3(0.25f, 0.015f, 0.25f)));
 		foreach (float ax in new[] { -0.62f, -0.28f })
-			Part(you, PrimitiveType.Cube, jacket, new Vector3(ax, 1.42f, -0.05f), new Vector3(0.1f, 0.1f, 0.45f));
+		{
+			sap.Add(Part(you, PrimitiveType.Cube, jacket, new Vector3(ax, 1.42f, -0.05f), new Vector3(0.1f, 0.1f, 0.45f)));
+			str.Add(Part(you, PrimitiveType.Cube, skin, new Vector3(ax, 1.42f, -0.05f), new Vector3(0.09f, 0.09f, 0.45f)));
+		}
+		str.Add(Part(you, PrimitiveType.Capsule, leopardsBlue, new Vector3(x, 1.42f, -0.35f), new Vector3(0.45f, 0.3f, 0.31f)));
+		str.Add(Part(you, PrimitiveType.Sphere, red, new Vector3(x, 1.73f, -0.34f), new Vector3(0.28f, 0.13f, 0.28f)));
+		str.Add(Part(you, PrimitiveType.Cube, red, new Vector3(x, 1.72f, -0.18f), new Vector3(0.18f, 0.02f, 0.12f)));
+		PlayerLooks looks = you.AddComponent<PlayerLooks>();
+		looks.sapeurParts = sap.ToArray();
+		looks.streetParts = str.ToArray();
+		looks.Apply();
 		you.SetActive(false);
 		return you;
 	}
@@ -1278,6 +1396,8 @@ public static class CityBuilder
 		foreach (Transform arm in new[] { officer.leftArm, officer.rightArm })
 			Part(arm.gameObject, PrimitiveType.Sphere, white, new Vector3(0, -0.66f, 0), Vector3.one * 0.15f).name = "Glove";
 	}
+
+	static GameObject Named(GameObject go, string name) { go.name = name; return go; }
 
 	static GameObject SavePrefab(GameObject go, string path)
 	{
@@ -1425,6 +1545,7 @@ public static class CityBuilder
 			police.starIcons[i] = img;
 		}
 		police.wantedText = Label(hud, "Wanted Reason", "", 26, TextAnchor.MiddleRight, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-34, -156), new Vector2(700, 36), new Color(1f, 0.55f, 0.5f), FontStyle.Bold);
+		Label(hud, "Clock", "", 30, TextAnchor.MiddleRight, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-34, -228), new Vector2(300, 36), Color.white, FontStyle.Bold);
 		game.goalText = Label(hud, "Goal", "", 24, TextAnchor.MiddleRight, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-34, -192), new Vector2(900, 32), new Color(1f, 0.86f, 0.3f), FontStyle.Italic);
 
 		// Pistol: a + in the middle of the screen, and which weapon you hold (above the health bar)
@@ -1462,6 +1583,9 @@ public static class CityBuilder
 		hudArrowGo.GetComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.8f);
 		ta.hudArrow = hudArrow;
 		ta.hudText = Label(hud, "Direction Text", "", 28, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -305), new Vector2(800, 36), gold, FontStyle.Bold);
+
+		game.GetComponent<DayNight>().clockText = hud.Find("Clock").GetComponent<Text>();
+		game.GetComponent<CarRadio>().radioText = Label(hud, "Radio", "", 26, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -345), new Vector2(1200, 34), new Color(0.6f, 0.95f, 1f), FontStyle.BoldAndItalic);
 
 		// The mission card: what to pick up, where to bring it, the pay and your goal
 		RectTransform card = Rect(hud, "Mission Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 60), new Vector2(1060, 300), new Color(0.05f, 0.06f, 0.09f, 0.88f), null);
@@ -1518,7 +1642,7 @@ public static class CityBuilder
 			"Shift  –  run          Space  –  jump / brake\n" +
 			"E  –  get in or out of a car          H  –  horn\n" +
 			"Left click / R  –  punch or shoot      Q  –  fists / pistol      T  –  talk\n" +
-			"V  –  view from inside the car      M  –  mission card      Esc  –  free the mouse", 28, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(960, 190), Color.white, FontStyle.Normal);
+			"V  –  inside the car      N  –  radio station      O  –  clothes      M  –  mission card      Esc  –  free the mouse", 26, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(960, 190), Color.white, FontStyle.Normal);
 
 		game.pressEnterText = Label(title, "Press Enter", "Press ENTER to start", 50, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -310), new Vector2(1000, 64), Color.white, FontStyle.Bold);
 		Label(title, "Made By", "Made by " + game.author, 32, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -400), new Vector2(1000, 44), new Color(1f, 0.95f, 0.75f), FontStyle.Italic);

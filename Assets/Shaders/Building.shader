@@ -7,7 +7,6 @@ Shader "Tosakana/Building"
 		_Color ("Wall Color", Color) = (1,1,1,1)
 		_MainTex ("Windows (alpha = window)", 2D) = "white" {}
 		_Tile ("Window Size (x = 1/width, y = 1/height)", Vector) = (0.2857, 0.303, 0, 0)
-		_Night ("Window Glow", Range(0,1)) = 0
 	}
 	SubShader
 	{
@@ -21,7 +20,7 @@ Shader "Tosakana/Building"
 		sampler2D _MainTex;
 		fixed4 _Color;
 		float4 _Tile;
-		half _Night;
+		half _TosakanaNight;   // set by DayNight for all buildings at once (0 = day, 1 = night)
 
 		struct Input
 		{
@@ -39,7 +38,7 @@ Shader "Tosakana/Building"
 			o.Albedo = lerp(_Color.rgb * lerp(0.85, 1.0, wall), w.rgb, win);
 			o.Smoothness = win * 0.75;
 			o.Metallic = 0;
-			o.Emission = w.rgb * win * _Night;
+			o.Emission = lerp(w.rgb, fixed3(1.0, 0.8, 0.45), 0.75) * win * _TosakanaNight;
 			o.Alpha = 1;
 		}
 		ENDCG

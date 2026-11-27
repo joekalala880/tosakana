@@ -28,3 +28,7 @@
 # Made by Tools > Tosakana > Record Voices in Chrome
 Voice Recorder.html
 Voice Originals/
+
+# Your own music for the car radio (songs belong to the artists)
+Assets/Resources/Radio/
+Assets/Resources/Radio.meta

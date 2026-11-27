@@ -91,7 +91,7 @@ public class VoiceRecorderWindow : EditorWindow
 			VoiceChromeRecorder.ImportFromDownloads();
 		EditorGUILayout.EndHorizontal();
 		EditorGUILayout.HelpBox("Record each line in Lingala with your voice. Click ● Record, say the line, then click ■ Stop. " +
-			"Click ▶ to listen, ● again to record it again.\n✔ = your voice.  PC = computer voice (your recording replaces it).  Empty = a soft murmur plays.", MessageType.Info);
+			"Click ▶ to listen, ● again to record it again.\n✔ = your voice.  PC = computer voice (your recording replaces it).  Empty = that line stays quiet.", MessageType.Info);
 
 		string[] devices = Microphone.devices;
 		if (devices.Length == 0)

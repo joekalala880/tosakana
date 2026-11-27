@@ -94,6 +94,8 @@ public class TosakanaGame : MonoBehaviour
 			ToggleInsideView();
 		if (!InVehicle && Input.GetKeyDown(KeyCode.T))
 			TalkToNearest();
+		if (!InVehicle && Input.GetKeyDown(KeyCode.O))
+			ChangeClothes();
 
 		// Esc frees the mouse, a click takes it back
 		if (Input.GetKeyDown(KeyCode.Escape))
@@ -324,6 +326,16 @@ public class TosakanaGame : MonoBehaviour
 		return null;
 	}
 
+	// O: the sapeur suit or the street look (Leopards jersey). The you in the car wears the same.
+	public void ChangeClothes()
+	{
+		PlayerLooks looks = player.GetComponent<PlayerLooks>();
+		if (looks == null)
+			return;
+		looks.SetStreet(!looks.street);
+		ShowBig(looks.street ? "STREET LOOK" : "SAPEUR", looks.LookName, looks.street ? new Color(0.4f, 0.8f, 1f) : new Color(1f, 0.85f, 0.3f), 1.8f);
+	}
+
 	// You sit at the wheel of the car you drive (hidden when you look from inside)
 	void SitInCar(CarController car)
 	{
@@ -338,6 +350,9 @@ public class TosakanaGame : MonoBehaviour
 		seatedYou.transform.SetParent(car.transform, false);
 		seatedYou.transform.localPosition = Vector3.zero;
 		seatedYou.transform.localRotation = Quaternion.identity;
+		PlayerLooks mine = player.GetComponent<PlayerLooks>(), seated = seatedYou.GetComponent<PlayerLooks>();
+		if (mine != null && seated != null)
+			seated.SetStreet(mine.street);
 		seatedYou.SetActive(!cameraRig.insideView);
 	}
 

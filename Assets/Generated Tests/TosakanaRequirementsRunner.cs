@@ -417,8 +417,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		foreach (var kv in Lingala.AllSpoken())
 			if (Voice.HasRecording(kv.Value)) withVoice++;
 		Check("Lines recorded in your voice: " + withVoice + " / " + Lingala.AllSpoken().Count, withVoice == Lingala.AllSpoken().Count);
-		AudioClip murmur = Voice.Murmur(new Lingala.Line("Test murmur line", "test"));
-		Check("A new line with no recording yet would play a soft murmur", murmur != null && murmur.length > 0.2f);
+		Check("Everyone talks with your real voice (no pitch change, no fake murmur)", friendVoice.GetComponent<AudioSource>().pitch == 1f);
 		var spoken = Lingala.AllSpoken();
 		var keys = new System.Collections.Generic.HashSet<string>();
 		bool keysOk = true;
@@ -822,6 +821,64 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		Check("Take a city car: their driver gets out, you sit at the wheel", game.CurrentCar == cityCar.Car && !cityCar.transform.Find("Driver").gameObject.activeSelf && game.seatedYou.transform.parent == cityCar.transform);
 		game.LeaveVehicle();
 		pm.ResetWanted();
+
+		// ================= Version 11: day and night, the car radio, flags, clothes =================
+		DayNight dn = game.GetComponent<DayNight>();
+		CarRadio radio = game.GetComponent<CarRadio>();
+		dn.SetHour(9f);
+		float h0 = dn.hour;
+		yield return new WaitForSeconds(2f);
+		Check("Time goes by: the clock moves (" + dn.clockText.text + ")", dn.hour > h0 + 0.03f && dn.clockText.text.Contains(":") && !dn.IsNight);
+		float dayLight = dn.sun.intensity;
+		Check("In the day the windows don't glow", dn.WindowGlow < 0.05f && dn.Darkness < 0.1f);
+		dn.SetHour(22f);
+		yield return null;
+		Check("Night: dark sky, moonlight, the clock shows the moon (" + dn.clockText.text + ")", dn.IsNight && dn.Darkness > 0.9f && dn.sun.intensity < dayLight * 0.3f && dn.clockText.text.StartsWith("☾ 22:"));
+		Check("Night: windows glow and the street lamps shine", dn.WindowGlow > 0.6f && dn.lampGlow.color.r > 0.9f && GameObject.Find("Street Lamps").transform.childCount > 60);
+		dn.SetHour(17.6f);
+		yield return null;
+		Check("Sunset: the sky turns orange", RenderSettings.fogColor.r > RenderSettings.fogColor.b + 0.15f && !dn.IsNight);
+		dn.SetHour(22f);
+
+		player.Teleport(taxi.transform.position - taxi.transform.right * 2.3f, 0f);
+		ClearAround(taxi.transform.position, 8f);
+		yield return null;
+		Check("Radio is off when you walk", !radio.On);
+		game.ToggleCar();
+		yield return null;
+		yield return null;
+		Check("Get in a car: the radio plays (" + radio.Current.name + " · " + radio.NowPlaying + ")", game.InCar && radio.On && radio.NowPlaying != null && radio.radioText.text.Contains("RADIO"));
+		Check("Tosakana FM plays rumba made by the game (" + radio.Current.songs.Count + " songs, " + Mathf.RoundToInt(radio.Current.songs[0].length) + " s)", radio.Stations[0].name == "Tosakana FM" && radio.Stations[0].songs.Count >= 2 && radio.Stations[0].songs[0].length > 60f);
+		Check("Night driving: your car turns its headlights on", dn.carLights.enabled && Vector3.Distance(dn.carLights.transform.position, taxi.transform.position) < 4f);
+		int stationBefore = radio.StationIndex;
+		radio.NextStation();
+		yield return null;
+		Check("N = next station (" + radio.Stations.Count + " station(s), now " + radio.Current.name + ")", radio.On && (radio.Stations.Count > 1 ? radio.StationIndex != stationBefore : radio.StationIndex == 0));
+		game.ToggleCar();
+		yield return null;
+		yield return null;
+		Check("Get out: the radio stops and the headlights go off", !radio.On && !dn.carLights.enabled && radio.radioText.text == "");
+		dn.SetHour(10f);
+		yield return null;
+
+		FlagWave[] flags = FindObjectsOfType<FlagWave>();
+		Quaternion r0 = flags[0].transform.localRotation;
+		yield return new WaitForSeconds(0.4f);
+		Check("DRC flags wave in the wind all over the city (" + flags.Length + " flags)", flags.Length >= 20 && Quaternion.Angle(r0, flags[0].transform.localRotation) > 0.5f);
+
+		PlayerLooks looks = player.GetComponent<PlayerLooks>();
+		Check("You start in the sapeur suit", !looks.street && FindDeep(player.transform, "Jacket").gameObject.activeSelf && !FindDeep(player.transform, "Leopards Jersey").gameObject.activeSelf);
+		game.ChangeClothes();
+		yield return null;
+		Check("O = street look: Leopards jersey, jeans, sneakers, cap", looks.street && FindDeep(player.transform, "Leopards Jersey").gameObject.activeSelf && FindDeep(player.transform, "Jeans").gameObject.activeSelf &&
+			FindDeep(player.transform, "Sneaker").gameObject.activeSelf && FindDeep(player.transform, "Cap").gameObject.activeSelf && !FindDeep(player.transform, "Hat").gameObject.activeSelf);
+		game.ToggleCar();
+		yield return null;
+		Check("In the car you wear the same clothes", game.InCar && game.seatedYou.GetComponent<PlayerLooks>().street);
+		game.ToggleCar();
+		yield return null;
+		game.ChangeClothes();
+		Check("O again = back in the sapeur suit", !looks.street && FindDeep(player.transform, "Hat").gameObject.activeSelf);
 
 		Debug.Log("TOSAKANA-CHECK DONE: " + passed + " passed, " + failed + " failed");
 	}
