@@ -251,6 +251,27 @@ public class TosakanaSnapshotTaker : MonoBehaviour
 		yield return new WaitForSeconds(2.5f);
 		Save(cam, rt, folder, "24_flying_over_kinshasa");
 		jet.testThrottle = 0;
+
+		// Version 8: the rich sapeur, with the arrow to the mission
+		jet.Place(jet.Home + Vector3.zero, 180f);
+		game.LeaveVehicle();
+		game.player.Teleport(new Vector3(-58f, 0.05f, 21.4f), 90f);   // a boulevard sidewalk
+		rig.SetYaw(270f);   // look at your face
+		rig.SetPitch(6f);
+		yield return new WaitForSeconds(0.5f);
+		Save(cam, rt, folder, "25_rich_sapeur");
+		rig.SetYaw(40f);
+		rig.SetPitch(14f);
+		yield return new WaitForSeconds(0.3f);
+		Save(cam, rt, folder, "26_arrow_to_the_mission");
+
+		// Version 9: the pistol
+		game.player.GetComponent<PlayerWeapons>().SetPistol(true);
+		rig.SetYaw(90f);
+		rig.SetPitch(6f);
+		yield return new WaitForSeconds(0.3f);
+		Save(cam, rt, folder, "27_pistol");
+		game.player.GetComponent<PlayerWeapons>().SetPistol(false);
 		Finished = true;
 	}
 

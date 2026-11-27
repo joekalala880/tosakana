@@ -18,6 +18,7 @@ before time runs out. Every job pays money.
 | ![Talking in Lingala in Lemba](Docs/16_talking_in_lingala.jpg) | ![Mont-Ngafula](Docs/18_bumbu_and_mont_ngafula.jpg) |
 | ![A roulage officer on Boulevard du 30 Juin](Docs/19_roulage_officer.jpg) | ![They fight back](Docs/21_they_fight_back.jpg) |
 | ![N'djili airport terminal](Docs/23_ndjili_terminal.jpg) | ![Flying over Kinshasa](Docs/24_flying_over_kinshasa.jpg) |
+| ![The rich sapeur](Docs/25_rich_sapeur.jpg) | ![The pistol](Docs/27_pistol.jpg) |
 
 ## Places in the city
 - **Place du 30 Juin** – the square with the DRC flag (you start here)
@@ -38,7 +39,8 @@ before time runs out. Every job pays money.
 | E | get in or out of a car |
 | H | horn |
 | T | talk to someone (in Lingala) |
-| Left click / R | punch |
+| Left click / R | punch (or shoot with the pistol) |
+| Q | fists / pistol |
 | In a plane | W/S speed · A/D turn · ↑ or Space climb · ↓ or C dive |
 | Esc | free the mouse (click to take it back) |
 
@@ -100,6 +102,17 @@ before time runs out. Every job pays money.
 - Press **E** next to a plane at the terminal to get in
 - W/S speed, A/D turn, ↑ or Space climb (when fast enough), ↓ or C dive; speed and height on the screen
 - Hit a building or the ground too hard: **CRASHED** (*"Avion ekwei!"*)
+
+## Version 8 adds: a rich man with a goal 🕴🏾🎯
+- **The goal:** you start with $1,000. Earn **$25,000** to become **"Mokonzi ya Kinshasa"** (King of Kinshasa). Your progress is on the screen
+- **A yellow arrow** floats over your head (or your car or plane) and points to your mission
+- You are a **Kinshasa sapeur**: bright suit, white trousers, hat, sunglasses, tie, gold chain and gold watch. Your own car is a shiny black luxury car
+- **Easier landing:** near the ground the plane levels out by itself, so you can land softly
+
+## Version 9 adds: the pistol 🔫
+- **Q** switches between your fists and a pistol; **left click** shoots where the + points
+- People you shoot fall and don't get up; gunshots make everyone near run away
+- Shooting brings wanted stars (shooting a police officer: +2)
 
 ## How to open
 Open the folder in Unity Hub (Unity 2022.3). The game is in `Assets/Scenes/Main.unity`. Press ▶ Play.

@@ -161,6 +161,7 @@ public static class Lingala
 	public static readonly Line Escaped = L("Okimi bapolisi!", "You escaped the police!");
 	public static readonly Line KnockedOut = L("Babeti yo!", "They beat you!");
 	public static readonly Line PlaneCrash = L("Avion ekwei!", "The plane fell!");
+	public static readonly Line King = L("Ozali mokonzi ya Kinshasa!", "You are the king of Kinshasa!");
 	public static readonly Line GetInPlane = L("Kota na avion", "Get in the plane");
 	public static readonly Line GetInCar = L("Kota na motuka", "Get in the car");
 	public static readonly Line Talk = L("Loba", "Talk");
@@ -198,7 +199,7 @@ public static class Lingala
 		add("You hit someone: they run", Help);
 		add("You hit someone: they fight back", FightBack);
 		add("Police on foot", PoliceOnFoot);
-		add("Messages", new[] { TooSlow, Busted, Escaped, KnockedOut, PlaneCrash });
+		add("Messages", new[] { TooSlow, Busted, Escaped, KnockedOut, PlaneCrash, King });
 		var welcomes = new Line[CommuneNames.Length];
 		for (int i = 0; i < CommuneNames.Length; i++)
 			welcomes[i] = WelcomeTo(CommuneNames[i]);

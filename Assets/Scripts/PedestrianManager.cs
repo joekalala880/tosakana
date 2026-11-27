@@ -47,6 +47,26 @@ public class PedestrianManager : MonoBehaviour
 		}
 	}
 
+	// People who were shot are taken away; new people come somewhere you can't see, so the city stays busy
+	float refillTimer;
+	void Update()
+	{
+		refillTimer -= Time.deltaTime;
+		if (refillTimer > 0 || Pedestrian.All.Count >= count || pedestrianPrefab == null)
+			return;
+		refillTimer = 1f;
+		Vector3 you = TosakanaGame.Instance != null ? TosakanaGame.Instance.Focus.position : Vector3.zero;
+		for (int tries = 0; tries < 10; tries++)
+		{
+			Vector3 c = BlockCenter(Random.Range(0, blocksX), Random.Range(0, blocksZ));
+			if (Vector3.Distance(c, you) < 80f)
+				continue;
+			Pedestrian p = Make();
+			p.Init(this, c, Random.Range(0, 4), Random.value < 0.5f ? 1 : -1, Random.Range(0f, 42f));
+			return;
+		}
+	}
+
 	public Vector3 BlockCenter(int i, int j) { return new Vector3(firstBlock + i * blockStep, 0, firstBlock + j * blockStep); }
 	public bool ValidBlock(int i, int j) { return i >= 0 && j >= 0 && i < blocksX && j < blocksZ; }
 

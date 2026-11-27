@@ -118,13 +118,17 @@ public class PlaneController : MonoBehaviour
 		if (climb > 0 && Speed >= takeoffSpeed) want = 14f;
 		else if (climb < 0 && !OnGround) want = -14f;
 		if (!OnGround && Speed < 25f) want = -10f;
+		// Close to the ground: the plane levels out by itself so you can land softly
+		bool landing = !OnGround && Altitude < 14f && climb <= 0;
+		if (landing) want = Mathf.Max(want, -4f);
 		pitch = Mathf.MoveTowards(pitch, want, 25f * dt);
+		if (landing) pitch = Mathf.Max(pitch, -4f);
 		roll = Mathf.Lerp(roll, OnGround ? 0 : -turn * 30f, dt * 3f);
 
 		Quaternion rotation = Quaternion.Euler(-pitch, yaw, roll);
 		Vector3 move = Quaternion.Euler(-pitch, yaw, 0) * Vector3.forward * Speed * dt;
 		if (!OnGround && Speed < 25f)
-			move += Vector3.down * (25f - Speed) * 0.4f * dt;
+			move += Vector3.down * Mathf.Min(6f, (25f - Speed) * 0.4f) * dt;
 
 		// Something in front? (buildings, walls, the control tower)
 		if (Speed > 1f && move.sqrMagnitude > 0.0001f)
@@ -148,7 +152,7 @@ public class PlaneController : MonoBehaviour
 		if (next.y < groundY)
 		{
 			float sink = (transform.position.y - next.y) / Mathf.Max(dt, 0.0001f);
-			if (!OnGround && (sink > 9f || (pitch < -8f && Speed > 30f)))
+			if (!OnGround && (sink > 12f || pitch < -12f))
 			{
 				Crash();
 				return;

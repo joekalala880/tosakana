@@ -44,7 +44,8 @@ public class PlayerCombat : MonoBehaviour
 
 		bool wants = testPunch || Input.GetKeyDown(KeyCode.R) || (Input.GetMouseButtonDown(0) && Cursor.lockState == CursorLockMode.Locked);
 		testPunch = false;
-		if (wants && cooldown <= 0 && !game.InVehicle)
+		PlayerWeapons weapons = GetComponent<PlayerWeapons>();
+		if (wants && cooldown <= 0 && !game.InVehicle && (weapons == null || !weapons.PistolOut))
 			Punch();
 
 		// Health comes back slowly after 4 seconds without being hit

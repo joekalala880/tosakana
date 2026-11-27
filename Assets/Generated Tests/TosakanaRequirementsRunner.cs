@@ -661,6 +661,93 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		yield return null;
 		Check("E on the ground, stopped = get out of the plane", leftPlane && !game.InPlane && player.gameObject.activeSelf);
 
+		// ================= Version 8: a rich man with a goal =================
+		game.LeaveVehicle();
+		pm.ResetWanted();
+		pm.enabled = false;
+		yield return null;
+		bool dressed = true;
+		foreach (string part in new[] { "Hat", "Sunglasses", "Tie", "Gold Chain", "Jacket" })
+			dressed &= FindDeep(player.transform, part) != null;
+		Check("You are a rich sapeur (suit, hat, sunglasses, tie, gold chain)", dressed);
+		Check("Your own car is a shiny black luxury car (no taxi stripe)", taxi.transform.Find("Stripe") == null && taxi.transform.Find("Body").GetComponent<Renderer>().sharedMaterial.color.grayscale < 0.1f);
+		Check("The goal on screen: \"" + game.goalText.text + "\"", game.goalMoney == 25000 && game.goalText.text.Contains("25,000"));
+		missions.StartMission(missions.Find("Gombe"), missions.Find("Matonge"));
+		player.Teleport(new Vector3(-116f, 0.05f, -36.6f), 0f);
+		yield return null;
+		yield return null;
+		TargetArrow ta = game.GetComponent<TargetArrow>();
+		Vector3 toTarget = missions.Target.markerPosition - player.transform.position;
+		toTarget.y = 0;
+		float arrowAngle = Vector3.Angle(ta.PointsTo, toTarget.normalized);
+		Check("A yellow arrow over your head points to the mission (off by " + arrowAngle.ToString("0") + "°)", ta.arrow.gameObject.activeSelf && arrowAngle < 5f && ta.arrow.position.y > player.transform.position.y + 2f);
+		game.AddMoney(game.goalMoney - game.Money + 10);
+		yield return null;
+		Check("Earn $25,000 = \"" + game.bigText.text + "\" (" + game.bigSubText.text + ")", game.GoalReached && game.bigText.text.StartsWith("MOKONZI") && game.goalText.text.StartsWith("Mokonzi"));
+
+		// Landing a plane is easy now
+		PlaneController lander = PlaneController.All.Find(pl => !pl.HasPilot && pl.OnGround);
+		Vector3 noseL = lander.transform.position + lander.transform.forward * 21f;
+		player.Teleport(new Vector3(noseL.x, 0.05f, noseL.z), 0f);
+		yield return null;
+		game.ToggleCar();
+		int crashesBefore = lander.Crashes;
+		lander.Place(new Vector3(760f, lander.Home.y + 40f, -95f), 90f, 40f);
+		lander.testPitch = -1;
+		float landWait = Time.time + 15f;
+		while (!lander.OnGround && Time.time < landWait)
+			yield return null;
+		Check("Hold ↓ to come down: the plane levels out near the ground and lands softly", lander.OnGround && lander.Crashes == crashesBefore && game.InPlane);
+		lander.testPitch = 0;
+		lander.testThrottle = -1;
+		yield return new WaitForSeconds(3f);
+		lander.testThrottle = 0;
+		bool gotOut = game.ToggleCar();
+		yield return null;
+		Check("S to stop, then E to get out (speed " + Mathf.RoundToInt(lander.Speed * 3.6f) + " km/h)", gotOut && !game.InPlane);
+
+		// ================= Version 9: the pistol =================
+		player.Teleport(new Vector3(58f, 0.05f, -94.6f), 90f);
+		rig.SetYaw(90f);
+		rig.SetPitch(8f);
+		ClearAround(player.transform.position, 25f);
+		yield return null;
+		yield return null;
+		PlayerWeapons gun = player.GetComponent<PlayerWeapons>();
+		gun.SetPistol(true);
+		yield return null;
+		Check("Q = take out the pistol (\"" + gun.weaponText.text + "\", + in the middle of the screen)", gun.PistolOut && gun.crosshair.enabled && gun.pistolModel.activeSelf && gun.weaponText.text.StartsWith("PISTOL"));
+		Camera cam = rig.GetComponent<Camera>();
+		Ray aim = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+		float tHit = aim.direction.y < -0.01f ? (aim.origin.y - 1f) / -aim.direction.y : 12f;
+		Vector3 spot2 = aim.GetPoint(tHit);
+		Pedestrian target2 = Pedestrian.All.Find(p => !p.IsDown && !p.Crossing && p.CurrentMood == Pedestrian.Mood.Walk);
+		Pedestrian bystander = Pedestrian.All.Find(p => p != target2 && !p.IsDown && !p.Crossing && p.CurrentMood == Pedestrian.Mood.Walk);
+		target2.testHold = true;
+		target2.testNoDodge = true;
+		ClearPeopleAround(spot2, 6f, target2);
+		target2.transform.position = new Vector3(spot2.x, 0.06f, spot2.z);
+		bystander.transform.position = player.transform.position + new Vector3(-4f, 0.01f, 3f);
+		pm.ResetWanted();
+		yield return null;
+		Component shotHit = gun.Shoot();
+		Check("Left click with the pistol = shoot: the person falls (" + (shotHit != null ? shotHit.name : "missed") + ")", shotHit == target2 && target2.IsDead);
+		Check("Shooting gives wanted stars (" + pm.Stars + ")", pm.Stars >= 2);
+		Check("Gunshots scare people: they run away", bystander.CurrentMood == Pedestrian.Mood.Flee);
+		yield return new WaitForSeconds(3f);
+		Check("Someone you shot doesn't get up", target2 != null && target2.IsDead);
+		GameObject copGo = Instantiate(pm.officerPrefab, new Vector3(spot2.x, 0.06f, spot2.z), Quaternion.identity);
+		PoliceFoot cop3 = copGo.GetComponent<PoliceFoot>();
+		cop3.Init(null);
+		Destroy(target2.gameObject);
+		yield return new WaitForSeconds(0.3f);
+		Component shotCop = gun.Shoot();
+		Check("Shoot a police officer: he goes down (stars " + pm.Stars + ")", shotCop == cop3 && cop3.IsDown);
+		gun.SetPistol(false);
+		yield return null;
+		Check("Q again = back to your fists", !gun.PistolOut && !gun.crosshair.enabled && gun.weaponText.text.StartsWith("FISTS"));
+		pm.ResetWanted();
+
 		Debug.Log("TOSAKANA-CHECK DONE: " + passed + " passed, " + failed + " failed");
 	}
 
@@ -677,6 +764,13 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		foreach (CarController car in CarController.All.ToArray())
 			if (car != taxi && car != keep && Flat(car.transform.position - p) < radius)
 				car.Teleport(new Vector3(-250f - 8f * k++, 0f, -250f), 0f);
+	}
+
+	static Transform FindDeep(Transform root, string name)
+	{
+		foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+			if (t.name == name) return t;
+		return null;
 	}
 
 	// Moves other people a little away (so the right person is the closest)

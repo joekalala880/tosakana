@@ -95,6 +95,13 @@ public class TrafficOfficer : MonoBehaviour
 		}
 	}
 
+	public void Shot()
+	{
+		if (IsDown)
+			return;
+		downTimer = 25f;
+	}
+
 	public void TakePunch(PlayerCombat by)
 	{
 		if (IsDown)

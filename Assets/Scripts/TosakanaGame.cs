@@ -10,6 +10,11 @@ public class TosakanaGame : MonoBehaviour
 	public string author = "Joel Kalala";
 	public float enterCarDistance = 4.5f;
 
+	[Header("The goal of the game")]
+	public int startMoney = 1000;       // you are a rich man already...
+	public int goalMoney = 25000;       // ...earn this much to become Mokonzi ya Kinshasa (king of Kinshasa)
+	public bool GoalReached { get; private set; }
+
 	[Header("World")]
 	public PlayerController player;
 	public CameraRig cameraRig;
@@ -26,6 +31,7 @@ public class TosakanaGame : MonoBehaviour
 	public Text speedText;
 	public Text bigText;
 	public Text bigSubText;
+	public Text goalText;
 	public Text areaBanner;
 	public Text areaBannerSub;
 
@@ -103,6 +109,7 @@ public class TosakanaGame : MonoBehaviour
 		if (CurrentState != State.Title)
 			return;
 		CurrentState = State.Playing;
+		Money = startMoney;
 		titlePanel.SetActive(false);
 		hud.SetActive(true);
 		cameraRig.titleMode = false;
@@ -311,6 +318,13 @@ public class TosakanaGame : MonoBehaviour
 	public void AddMoney(int amount)
 	{
 		Money += amount;
+		if (!GoalReached && Money >= goalMoney)
+		{
+			GoalReached = true;
+			ShowBig("MOKONZI YA KINSHASA!", "You are the King of Kinshasa!  ·  " + Lingala.King.lingala, new Color(1f, 0.84f, 0.1f), 7f);
+			Voice.SayToYou(Lingala.King);
+			sound.Passed();
+		}
 	}
 
 	// Big message in the middle of the screen (MISSION PASSED, ...)
@@ -326,6 +340,8 @@ public class TosakanaGame : MonoBehaviour
 	void UpdateHud()
 	{
 		moneyText.text = "$" + Money.ToString("N0");
+		if (goalText != null)
+			goalText.text = GoalReached ? "Mokonzi ya Kinshasa ♛" : "Goal: $" + Money.ToString("N0") + " / $" + goalMoney.ToString("N0") + "  (become the King of Kinshasa)";
 		zoneText.text = missions.ZoneName(Focus.position);
 
 		if (InPlane)

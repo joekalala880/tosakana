@@ -88,7 +88,7 @@ public static class CityBuilder
 
 		// Cars
 		Transform cars = new GameObject("Cars").transform;
-		MakeCar(cars, "Taxi (yours)", TaxiStart, 90f, true, yellow);
+		MakeCar(cars, "Taxi (yours)", TaxiStart, 90f, false, Mat("Luxury Black", new Color(0.04f, 0.04f, 0.05f), 0.92f));   // your own luxury car
 		ParkCars(cars, 45);
 
 		// Roulage officers at busy crossroads (4 on Boulevard du 30 Juin, 1 near the Grand Marché)
@@ -145,6 +145,7 @@ public static class CityBuilder
 		game.cameraRig.target = player.transform;
 
 		MakeMarker(missions);
+		MakeTargetArrow(gameGo);
 		RenderTexture mapTexture = MakeMiniMap(map);
 		BuildUI(game, missions, mapTexture);
 
@@ -1067,16 +1068,43 @@ public static class CityBuilder
 		PlayerController pc = p.AddComponent<PlayerController>();
 		p.AddComponent<PlayerCombat>();
 
-		Part(p, PrimitiveType.Capsule, shirt, new Vector3(0, 1.2f, 0), new Vector3(0.55f, 0.42f, 0.38f));
+		// A rich Kinshasa sapeur: bright suit, white shirt and tie, hat, sunglasses, gold chain
+		Material jacket = Mat("Sapeur Jacket", new Color(0.88f, 0.16f, 0.42f), 0.35f);
+		Material trousers = Mat("Sapeur Trousers", new Color(0.95f, 0.93f, 0.86f), 0.25f);
+		Material hat = Mat("Sapeur Hat", new Color(0.96f, 0.92f, 0.8f), 0.3f);
+		Material gold = Mat("Gold", new Color(1f, 0.78f, 0.2f), 0.9f);
+		Material shoes = Mat("Shoes", new Color(0.35f, 0.18f, 0.08f), 0.8f);
+		Part(p, PrimitiveType.Capsule, jacket, new Vector3(0, 1.2f, 0), new Vector3(0.56f, 0.42f, 0.4f)).name = "Jacket";
+		Part(p, PrimitiveType.Cube, white, new Vector3(0, 1.36f, 0.16f), new Vector3(0.16f, 0.26f, 0.06f)).name = "Shirt";
+		Part(p, PrimitiveType.Cube, yellow, new Vector3(0, 1.3f, 0.2f), new Vector3(0.06f, 0.3f, 0.03f)).name = "Tie";
+		Part(p, PrimitiveType.Cube, gold, new Vector3(0, 1.47f, 0.17f), new Vector3(0.26f, 0.03f, 0.04f)).name = "Gold Chain";
 		Part(p, PrimitiveType.Sphere, skin, new Vector3(0, 1.72f, 0), Vector3.one * 0.34f);
-		Part(p, PrimitiveType.Sphere, hair, new Vector3(0, 1.82f, -0.02f), new Vector3(0.33f, 0.18f, 0.33f));
-		foreach (float x in new[] { -0.07f, 0.07f })
-			Part(p, PrimitiveType.Sphere, black, new Vector3(x, 1.75f, 0.155f), Vector3.one * 0.05f);
+		Part(p, PrimitiveType.Cube, black, new Vector3(0, 1.76f, 0.15f), new Vector3(0.28f, 0.07f, 0.05f)).name = "Sunglasses";
+		Part(p, PrimitiveType.Cylinder, hat, new Vector3(0, 1.88f, 0), new Vector3(0.52f, 0.015f, 0.52f)).name = "Hat Brim";
+		Part(p, PrimitiveType.Cylinder, hat, new Vector3(0, 1.97f, 0), new Vector3(0.3f, 0.09f, 0.3f)).name = "Hat";
+		Part(p, PrimitiveType.Cylinder, black, new Vector3(0, 1.92f, 0), new Vector3(0.31f, 0.025f, 0.31f)).name = "Hat Band";
 
-		pc.leftLeg = Limb(p, "Left Leg", new Vector3(-0.13f, 0.88f, 0), new Vector3(0.18f, 0.88f, 0.2f), pants);
-		pc.rightLeg = Limb(p, "Right Leg", new Vector3(0.13f, 0.88f, 0), new Vector3(0.18f, 0.88f, 0.2f), pants);
-		pc.leftArm = Limb(p, "Left Arm", new Vector3(-0.36f, 1.45f, 0), new Vector3(0.13f, 0.65f, 0.15f), skin);
-		pc.rightArm = Limb(p, "Right Arm", new Vector3(0.36f, 1.45f, 0), new Vector3(0.13f, 0.65f, 0.15f), skin);
+		pc.leftLeg = Limb(p, "Left Leg", new Vector3(-0.13f, 0.88f, 0), new Vector3(0.18f, 0.88f, 0.2f), trousers);
+		pc.rightLeg = Limb(p, "Right Leg", new Vector3(0.13f, 0.88f, 0), new Vector3(0.18f, 0.88f, 0.2f), trousers);
+		foreach (Transform leg in new[] { pc.leftLeg, pc.rightLeg })
+			Part(leg.gameObject, PrimitiveType.Cube, shoes, new Vector3(0, -0.84f, 0.06f), new Vector3(0.2f, 0.09f, 0.32f)).name = "Shoe";
+		pc.leftArm = Limb(p, "Left Arm", new Vector3(-0.36f, 1.45f, 0), new Vector3(0.14f, 0.62f, 0.16f), jacket);
+		pc.rightArm = Limb(p, "Right Arm", new Vector3(0.36f, 1.45f, 0), new Vector3(0.14f, 0.62f, 0.16f), jacket);
+		foreach (Transform arm in new[] { pc.leftArm, pc.rightArm })
+			Part(arm.gameObject, PrimitiveType.Sphere, skin, new Vector3(0, -0.66f, 0), Vector3.one * 0.13f).name = "Hand";
+		Part(pc.leftArm.gameObject, PrimitiveType.Cube, gold, new Vector3(0, -0.58f, 0), new Vector3(0.16f, 0.05f, 0.18f)).name = "Gold Watch";
+
+		// The pistol in the right hand (hidden until you press Q)
+		PlayerWeapons weapons = p.AddComponent<PlayerWeapons>();
+		GameObject pistol = new GameObject("Pistol");
+		pistol.transform.SetParent(pc.rightArm, false);
+		pistol.transform.localPosition = new Vector3(0, -0.7f, 0.02f);
+		Part(pistol, PrimitiveType.Cube, black, new Vector3(0, -0.06f, 0), new Vector3(0.05f, 0.24f, 0.08f));
+		Part(pistol, PrimitiveType.Cube, black, new Vector3(0, 0.02f, -0.07f), new Vector3(0.05f, 0.08f, 0.14f));
+		GameObject flash = Part(pistol, PrimitiveType.Sphere, Unlit("Muzzle Flash", new Color(1f, 0.85f, 0.3f)), new Vector3(0, -0.24f, 0), Vector3.one * 0.18f);
+		flash.name = "Muzzle Flash";
+		weapons.pistolModel = pistol;
+		weapons.muzzleFlash = flash;
 
 		p.transform.SetPositionAndRotation(PlayerStart, Quaternion.Euler(0, 90f, 0));
 		return pc;
@@ -1234,6 +1262,23 @@ public static class CityBuilder
 		missions.markerLabel = tm;
 	}
 
+	// A big yellow arrow that floats over you and points to your mission
+	static void MakeTargetArrow(GameObject gameGo)
+	{
+		GameObject arrow = new GameObject("Mission Arrow");
+		Material m = Unlit("Arrow Yellow", new Color(1f, 0.85f, 0.1f));
+		Part(arrow, PrimitiveType.Cube, m, new Vector3(0, 0, -0.2f), new Vector3(0.28f, 0.12f, 1.1f));
+		foreach (float side in new[] { -1f, 1f })
+		{
+			GameObject head = Part(arrow, PrimitiveType.Cube, m, new Vector3(side * 0.22f, 0, 0.42f), new Vector3(0.22f, 0.12f, 0.7f));
+			head.transform.localRotation = Quaternion.Euler(0, -side * 40f, 0);
+		}
+		foreach (Renderer r in arrow.GetComponentsInChildren<Renderer>())
+			r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+		TargetArrow ta = gameGo.AddComponent<TargetArrow>();
+		ta.arrow = arrow.transform;
+	}
+
 	static RenderTexture MakeMiniMap(MiniMap map)
 	{
 		RenderTexture rt = new RenderTexture(512, 512, 16);
@@ -1328,6 +1373,12 @@ public static class CityBuilder
 			police.starIcons[i] = img;
 		}
 		police.wantedText = Label(hud, "Wanted Reason", "", 26, TextAnchor.MiddleRight, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-34, -156), new Vector2(700, 36), new Color(1f, 0.55f, 0.5f), FontStyle.Bold);
+		game.goalText = Label(hud, "Goal", "", 24, TextAnchor.MiddleRight, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-34, -192), new Vector2(900, 32), new Color(1f, 0.86f, 0.3f), FontStyle.Italic);
+
+		// Pistol: a + in the middle of the screen, and which weapon you hold (above the health bar)
+		PlayerWeapons guns = game.player.GetComponent<PlayerWeapons>();
+		guns.crosshair = Label(hud, "Crosshair", "+", 54, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 0), new Vector2(60, 60), Color.white, FontStyle.Bold);
+		guns.weaponText = Label(hud, "Weapon", "", 24, TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(0, 0), new Vector2(40, 384), new Vector2(400, 30), Color.white, FontStyle.Bold);
 
 		// Big message (center)
 		game.bigText = Label(hud, "Big Text", "", 84, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 190), new Vector2(1400, 110), gold, FontStyle.Bold);
@@ -1388,7 +1439,7 @@ public static class CityBuilder
 		Label(controls, "Controls", "W A S D  –  walk / drive          Mouse  –  look around\n" +
 			"Shift  –  run          Space  –  jump / brake\n" +
 			"E  –  get in or out of a car          H  –  horn\n" +
-			"Left click / R  –  punch          T  –  talk          Esc  –  free the mouse", 30, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(960, 190), Color.white, FontStyle.Normal);
+			"Left click / R  –  punch or shoot      Q  –  fists / pistol      T  –  talk      Esc  –  free the mouse", 28, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(960, 190), Color.white, FontStyle.Normal);
 
 		game.pressEnterText = Label(title, "Press Enter", "Press ENTER to start", 50, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -310), new Vector2(1000, 64), Color.white, FontStyle.Bold);
 		Label(title, "Made By", "Made by " + game.author, 32, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -400), new Vector2(1000, 44), new Color(1f, 0.95f, 0.75f), FontStyle.Italic);

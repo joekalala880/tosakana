@@ -22,7 +22,8 @@ public class Pedestrian : MonoBehaviour
 	[HideInInspector] public bool testHold;     // stand still (still dodges)
 	[HideInInspector] public bool testNoDodge;  // don't jump away
 
-	public bool IsDown { get { return downTimer > 0; } }
+	public bool IsDown { get { return downTimer > 0 || IsDead; } }
+	public bool IsDead { get; private set; }
 	public enum Mood { Walk, Flee, Fight }
 	public Mood CurrentMood { get { return mood; } }
 	public int Punched { get; private set; }
@@ -30,7 +31,7 @@ public class Pedestrian : MonoBehaviour
 	[HideInInspector] public bool testForceFight;
 	[HideInInspector] public bool testForceFlee;
 	Mood mood, moodAfterGettingUp;
-	float moodTimer, attackCooldown, punchAnim;
+	float moodTimer, attackCooldown, punchAnim, deadTimer;
 	public bool Talking { get { return talkTimer > 0; } }
 	public bool Crossing { get; private set; }
 	public int Dodges { get; private set; }
@@ -98,6 +99,16 @@ public class Pedestrian : MonoBehaviour
 		if (manager == null)
 			return;
 		float dt = Time.deltaTime;
+
+		// Shot: lies there, then is taken away
+		if (IsDead)
+		{
+			deadTimer -= dt;
+			transform.rotation = Quaternion.Euler(-85f, yaw, 0);
+			if (deadTimer <= 0)
+				Destroy(gameObject);
+			return;
+		}
 
 		// Lying on the ground after a car hit them (or you punched them)
 		if (downTimer > 0)
@@ -183,6 +194,27 @@ public class Pedestrian : MonoBehaviour
 		foreach (Pedestrian p in All)
 			if (p != this && !p.IsDown && p.mood == Mood.Walk && Vector3.Distance(p.transform.position, transform.position) < 9f)
 				p.StartMood(Mood.Flee);
+	}
+
+	// You shot them: they fall and don't get up
+	public void Shot()
+	{
+		if (IsDead)
+			return;
+		IsDead = true;
+		deadTimer = 15f;
+		dodgeTimer = 0;
+		talkTimer = 0;
+		mood = Mood.Walk;
+		if (TosakanaGame.Instance != null)
+			TosakanaGame.Instance.sound.BumpAt(transform.position);
+	}
+
+	// Gunshots nearby: run away
+	public void Scare()
+	{
+		if (!IsDown && mood == Mood.Walk)
+			StartMood(Mood.Flee);
 	}
 
 	public void CalmDown()

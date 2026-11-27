@@ -129,6 +129,19 @@ public class PoliceFoot : MonoBehaviour
 		return distance;
 	}
 
+	// Shot: down for good, then taken away
+	public void TakeShot()
+	{
+		if (IsDown)
+			return;
+		Health = 0;
+		downTimer = 20f;
+		Voice.Say(gameObject, Lingala.Pick(Lingala.Hit));
+		if (Car != null)
+			Car.OfficerOut = false;
+		Destroy(gameObject, 20f);
+	}
+
 	public void TakePunch(PlayerCombat by)
 	{
 		if (IsDown)
