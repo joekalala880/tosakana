@@ -44,7 +44,7 @@ public class PlayerCombat : MonoBehaviour
 
 		bool wants = testPunch || Input.GetKeyDown(KeyCode.R) || (Input.GetMouseButtonDown(0) && Cursor.lockState == CursorLockMode.Locked);
 		testPunch = false;
-		if (wants && cooldown <= 0 && !game.InCar)
+		if (wants && cooldown <= 0 && !game.InVehicle)
 			Punch();
 
 		// Health comes back slowly after 4 seconds without being hit
@@ -114,7 +114,7 @@ public class PlayerCombat : MonoBehaviour
 	public void TakeDamage(int amount)
 	{
 		TosakanaGame game = TosakanaGame.Instance;
-		if (game == null || !game.IsPlaying || game.InCar || !gameObject.activeInHierarchy)
+		if (game == null || !game.IsPlaying || game.InVehicle || !gameObject.activeInHierarchy)
 			return;
 		Health -= amount;
 		sinceHurt = 0;

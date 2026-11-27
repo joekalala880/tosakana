@@ -130,9 +130,14 @@ public class PoliceManager : MonoBehaviour
 		// One police car per star
 		if (ChasingCount < Stars && spawnTimer <= 0)
 		{
+			// Use a patrol car if one is close; the city is big, so otherwise a new police car comes from nearby
 			TrafficDriver d = NearestPatrol(game.Focus.position);
-			if (d == null)
-				d = SpawnPolice(60f, 140f);
+			if (d == null || Flat(d.transform.position - game.Focus.position) > 200f)
+			{
+				TrafficDriver fresh = SpawnPolice(60f, 140f);
+				if (fresh != null)
+					d = fresh;
+			}
 			if (d != null)
 				d.SetChasing(true);
 			spawnTimer = 2f;
@@ -155,7 +160,7 @@ public class PoliceManager : MonoBehaviour
 		}
 
 		// You are walking: officers get out of cars that are close and slow
-		if (!game.InCar && officerPrefab != null)
+		if (!game.InVehicle && officerPrefab != null)
 			foreach (TrafficDriver d in Police)
 			{
 				if (!d.Chasing || d.OfficerOut || PoliceFoot.All.Count >= maxOfficersOnFoot)
@@ -172,7 +177,7 @@ public class PoliceManager : MonoBehaviour
 
 		// Caught: a police car right next to you while you are stopped
 		bool caught = false;
-		if (!game.InCar)
+		if (!game.InVehicle)
 			foreach (PoliceFoot cop in PoliceFoot.All)
 				if (!cop.IsDown && !cop.Returning && Flat(cop.transform.position - game.Focus.position) < 1.8f)
 					caught = true;
@@ -181,7 +186,9 @@ public class PoliceManager : MonoBehaviour
 			if (!d.Chasing)
 				continue;
 			float distance = Flat(d.transform.position - game.Focus.position);
-			if (game.InCar)
+			if (game.InPlane)
+				caught |= game.CurrentPlane.OnGround && game.CurrentPlane.Speed < 1.5f && distance < 14f;
+			else if (game.InCar)
 				caught |= Mathf.Abs(game.CurrentCar.Speed) < 1.5f && distance < 7f;
 			else
 				caught |= distance < 5f && Mathf.Abs(d.Car.Speed) < 4f;
@@ -251,8 +258,7 @@ public class PoliceManager : MonoBehaviour
 		Stars = 0;
 		escapeTimer = 0;
 		bustTimer = 0;
-		if (game.InCar)
-			game.ToggleCar();
+		game.LeaveVehicle();
 		foreach (PoliceFoot cop in PoliceFoot.All.ToArray())
 			Destroy(cop.gameObject);
 		game.player.Teleport(game.RespawnPoint, 90f);

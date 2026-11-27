@@ -220,7 +220,7 @@ public class Pedestrian : MonoBehaviour
 			return;
 		}
 		// Fight: walk up to you and punch
-		if (game.InCar || distance > 25f)
+		if (game.InVehicle || distance > 25f)
 		{
 			mood = Mood.Walk;
 			return;
@@ -249,7 +249,7 @@ public class Pedestrian : MonoBehaviour
 	{
 		greetCooldown -= dt;
 		TosakanaGame game = TosakanaGame.Instance;
-		if (game == null || !game.IsPlaying || game.InCar || greetCooldown > 0 || Time.time < nextGreetTime)
+		if (game == null || !game.IsPlaying || game.InVehicle || greetCooldown > 0 || Time.time < nextGreetTime)
 			return;
 		Vector3 d = game.player.transform.position - transform.position;
 		d.y = 0;

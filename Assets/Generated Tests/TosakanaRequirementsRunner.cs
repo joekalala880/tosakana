@@ -273,6 +273,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		// ================= Version 3: police and wanted stars =================
 		PoliceManager pm = PoliceManager.Instance;
 		pm.ResetWanted();
+		pm.bustSeconds = 999f;   // no BUSTED until the check that waits for it
 		pm.enabled = true;
 		yield return null;
 		Check("Police cars patrol the city (" + pm.Police.Count + "), no stars yet", pm.Police.Count >= 2 && pm.Stars == 0 && pm.ChasingCount == 0 && StarsLit(pm) == 0);
@@ -304,6 +305,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		Check("More stars = more police (" + pm.Stars + " stars, " + pm.ChasingCount + " chasing)", pm.Stars == 2 && pm.ChasingCount >= 2 && StarsLit(pm) == 2);
 
 		// Stay stopped: the police come and catch you
+		pm.bustSeconds = 1.5f;
 		int moneyBefore = game.Money;
 		float closest = float.MaxValue;
 		float giveUp = Time.time + 50f;
@@ -601,6 +603,63 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		Check("The police follow you to the airport (closest " + closestAir.ToString("0") + " m)", closestAir < 30f);
 		ride.testBrake = false;
 		pm.ResetWanted();
+
+		// ================= Version 7: fly a plane =================
+		pm.ResetWanted();
+		pm.enabled = false;
+		game.LeaveVehicle();
+		yield return null;
+		PlaneController jet = PlaneController.All.Find(pl => pl.OnGround && !pl.HasPilot);
+		Check("You can fly " + PlaneController.All.Count + " planes at the airport", PlaneController.All.Count == 3 && jet != null);
+		Vector3 nose = jet.transform.position + jet.transform.forward * 21f;
+		player.Teleport(new Vector3(nose.x, 0.05f, nose.z), jet.transform.eulerAngles.y + 180f);
+		ClearAround(nose, 10f);
+		yield return null;
+		yield return null;
+		Check("Hint next to a plane: \"" + game.hintText.text + "\"", game.hintText.text.Contains("get in the plane") && game.hintText.text.Contains("Kota na avion"));
+		bool boarded = game.ToggleCar();
+		yield return null;
+		Check("E next to a plane = you get in (the camera follows the plane)", boarded && game.InPlane && game.CurrentPlane == jet && !player.gameObject.activeSelf && rig.target == jet.transform);
+
+		// Take off from the runway
+		jet.Place(new Vector3(640f, jet.Home.y, -95f), 90f);
+		jet.testThrottle = 1;
+		yield return new WaitForSeconds(4f);
+		Check("W = speed up on the runway (" + Mathf.RoundToInt(jet.Speed * 3.6f) + " km/h)", jet.Speed > 30f && jet.OnGround);
+		jet.testPitch = 1;
+		yield return new WaitForSeconds(4f);
+		Check("↑ or Space = take off and climb (" + jet.Altitude.ToString("0") + " m high)", jet.Altitude > 15f && !jet.OnGround);
+		Check("Speed and height on the screen (\"" + game.speedText.text + "\")", game.speedText.text.Contains("km/h") && game.speedText.text.EndsWith(" m"));
+		float jetYaw = jet.transform.eulerAngles.y;
+		jet.testPitch = 0;
+		jet.testTurn = 1;
+		yield return new WaitForSeconds(2f);
+		jet.testTurn = 0;
+		Check("A/D = turn in the air (" + Mathf.Abs(Mathf.DeltaAngle(jetYaw, jet.transform.eulerAngles.y)).ToString("0") + "°)", Mathf.Abs(Mathf.DeltaAngle(jetYaw, jet.transform.eulerAngles.y)) > 30f);
+		Check("The mini-map and area name follow the plane", Flat(map.mapCam.transform.position - jet.transform.position) < 1f && game.Focus == jet.transform);
+		Check("You can't get out while flying", !game.ToggleCar() && game.InPlane);
+
+		// Crash into a Gombe tower
+		int moneyBeforeCrash = game.Money;
+		jet.testThrottle = 0;
+		jet.Place(new Vector3(48f, 20f, 15f), 0f, 50f);   // straight at a Gombe tower
+		float crashWait = Time.time + 4f;
+		while (jet.Crashes == 0 && Time.time < crashWait)
+			yield return null;
+		yield return null;
+		Check("Fly into a building = CRASHED (\"" + game.bigSubText.text + "\"), you wait at the airport",
+			jet.Crashes == 1 && game.bigText.text == "CRASHED" && !game.InPlane && player.gameObject.activeSelf &&
+			game.Money == moneyBeforeCrash - Mathf.Min(moneyBeforeCrash, 100) && player.transform.position.x > 600f && jet.OnGround);
+
+		// Get in again and get out on the ground
+		Vector3 nose2 = jet.transform.position + jet.transform.forward * 21f;
+		player.Teleport(new Vector3(nose2.x, 0.05f, nose2.z), 0f);
+		yield return null;
+		game.ToggleCar();
+		yield return null;
+		bool leftPlane = game.ToggleCar();
+		yield return null;
+		Check("E on the ground, stopped = get out of the plane", leftPlane && !game.InPlane && player.gameObject.activeSelf);
 
 		Debug.Log("TOSAKANA-CHECK DONE: " + passed + " passed, " + failed + " failed");
 	}

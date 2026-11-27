@@ -793,8 +793,9 @@ public static class CityBuilder
 		}
 
 		// Planes waiting at the terminal, and one that takes off again and again
+		// The 3 planes at the terminal: you can get in and fly them (E)
 		foreach (float px in new[] { 760f, 850f, 940f })
-			MakePlane(ap, new Vector3(px, 0.13f, 78f), 180f, true);
+			MakePlane(ap, new Vector3(px, 0.13f, 78f), 180f, true, true);
 		GameObject flyer = MakePlane(ap, new Vector3(rx0 + 15f, 0.15f, rz), 90f, false);
 		flyer.name = "Plane (takes off)";
 		flyer.AddComponent<PlaneTakeoff>().runwayLength = rx1 - rx0 - 40f;
@@ -804,10 +805,12 @@ public static class CityBuilder
 	}
 
 	// A plane: white body with a blue and yellow stripe, wings, engines and a blue tail
-	static GameObject MakePlane(Transform parent, Vector3 pos, float yaw, bool solid)
+	static GameObject MakePlane(Transform parent, Vector3 pos, float yaw, bool solid, bool flyable = false)
 	{
-		GameObject plane = new GameObject("Plane");
+		GameObject plane = new GameObject(flyable ? "Plane (you can fly)" : "Plane");
 		plane.transform.SetParent(parent);
+		if (flyable)
+			plane.layer = 2;   // its own crash check and the camera look past it
 		Material engineMat = metal;
 		GameObject body = Part(plane, PrimitiveType.Cylinder, white, new Vector3(0, 3.2f, 0), new Vector3(4f, 17f, 4f));
 		body.transform.localRotation = Quaternion.Euler(90, 0, 0);
@@ -837,6 +840,13 @@ public static class CityBuilder
 			BoxCollider b2 = plane.AddComponent<BoxCollider>();
 			b2.center = new Vector3(0, 2.4f, 1f);
 			b2.size = new Vector3(34f, 1f, 6.5f);
+		}
+		if (flyable)
+		{
+			Rigidbody rb = plane.AddComponent<Rigidbody>();
+			rb.isKinematic = true;
+			rb.useGravity = false;
+			plane.AddComponent<PlaneController>();
 		}
 		plane.transform.SetPositionAndRotation(pos, Quaternion.Euler(0, yaw, 0));
 		return plane;

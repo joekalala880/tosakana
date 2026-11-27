@@ -238,6 +238,19 @@ public class TosakanaSnapshotTaker : MonoBehaviour
 		rig.SetPitch(8f);
 		yield return new WaitForSeconds(0.4f);
 		Save(cam, rt, folder, "23_ndjili_terminal");
+
+		// Version 7: flying over Kinshasa
+		PlaneController jet = PlaneController.All[0];
+		Vector3 nose = jet.transform.position + jet.transform.forward * 21f;
+		game.player.Teleport(new Vector3(nose.x, 0.05f, nose.z), 0f);
+		yield return null;
+		game.ToggleCar();
+		jet.Place(new Vector3(420f, 110f, -60f), 285f, 70f);
+		jet.testThrottle = 0.4f;
+		rig.SetYaw(285f);
+		yield return new WaitForSeconds(2.5f);
+		Save(cam, rt, folder, "24_flying_over_kinshasa");
+		jet.testThrottle = 0;
 		Finished = true;
 	}
 

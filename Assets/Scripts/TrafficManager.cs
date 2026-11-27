@@ -126,7 +126,9 @@ public class TrafficManager : MonoBehaviour
 		int a, b, h;
 		float t;
 		Vector3 focus = TosakanaGame.Instance != null ? TosakanaGame.Instance.Focus.position : Vector3.zero;
-		if (FindSpot(focus, 70f, out a, out b, out h, out t))
+		// A police car in a chase comes back near you; other cars go somewhere you can't see
+		bool chasing = driver.Chasing;
+		if (chasing ? FindSpot(focus, 60f, 140f, out a, out b, out h, out t) : FindSpot(focus, 70f, out a, out b, out h, out t))
 			driver.PlaceAt(a, b, h, t);
 	}
 

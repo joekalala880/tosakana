@@ -34,7 +34,11 @@ public class TosakanaGame : MonoBehaviour
 	public int Money { get; private set; }
 	public CarController CurrentCar { get; private set; }
 	public bool InCar { get { return CurrentCar != null; } }
-	public Transform Focus { get { return InCar ? CurrentCar.transform : player.transform; } }
+	public PlaneController CurrentPlane { get; private set; }
+	public bool InPlane { get { return CurrentPlane != null; } }
+	public bool InVehicle { get { return InCar || InPlane; } }   // in a car or a plane
+	public float enterPlaneDistance = 24f;   // planes are big: from the nose, the wings or the tail
+	public Transform Focus { get { return InPlane ? CurrentPlane.transform : InCar ? CurrentCar.transform : player.transform; } }
 	public Vector3 RespawnPoint { get; private set; }   // where you start again after BUSTED
 
 	float bigTimer, bigLength, bannerTimer;
@@ -79,7 +83,7 @@ public class TosakanaGame : MonoBehaviour
 			ToggleCar();
 		if (InCar && Input.GetKeyDown(KeyCode.H))
 			sound.Horn();
-		if (!InCar && Input.GetKeyDown(KeyCode.T))
+		if (!InVehicle && Input.GetKeyDown(KeyCode.T))
 			TalkToNearest();
 
 		// Esc frees the mouse, a click takes it back
@@ -132,11 +136,37 @@ public class TosakanaGame : MonoBehaviour
 		return best;
 	}
 
-	// E: get in the nearest car, or get out of the car you are driving
+	public PlaneController NearestPlane(Vector3 from, float maxDistance)
+	{
+		PlaneController best = null;
+		float bestDistance = maxDistance;
+		foreach (PlaneController plane in PlaneController.All)
+		{
+			Vector3 d = plane.transform.position - from;
+			d.y = 0;
+			if (plane.OnGround && d.magnitude < bestDistance)
+			{
+				bestDistance = d.magnitude;
+				best = plane;
+			}
+		}
+		return best;
+	}
+
+	// E: get in the nearest car or plane, or get out
 	public bool ToggleCar()
 	{
 		if (!IsPlaying)
 			return false;
+
+		if (InPlane)
+		{
+			// You can only get out on the ground, stopped
+			if (!CurrentPlane.OnGround || Mathf.Abs(CurrentPlane.Speed) > 3f)
+				return false;
+			LeavePlane(CurrentPlane.transform.position + CurrentPlane.transform.forward * 22f);
+			return true;
+		}
 
 		if (InCar)
 		{
@@ -152,7 +182,17 @@ public class TosakanaGame : MonoBehaviour
 
 		CarController nearest = NearestCar(player.transform.position, enterCarDistance);
 		if (nearest == null)
-			return false;
+		{
+			PlaneController plane = NearestPlane(player.transform.position, enterPlaneDistance);
+			if (plane == null)
+				return false;
+			CurrentPlane = plane;
+			plane.SetPilot(true);
+			player.gameObject.SetActive(false);
+			cameraRig.SetTarget(plane.transform, true, 48f, 13f);
+			sound.Door();
+			return true;
+		}
 		// Taking a car from the traffic: the driver gets out, shouts and walks away
 		TrafficDriver driver = nearest.GetComponent<TrafficDriver>();
 		if (driver != null && driver.enabled)
@@ -178,6 +218,38 @@ public class TosakanaGame : MonoBehaviour
 		cameraRig.SetTarget(nearest.transform, true);
 		sound.Door();
 		return true;
+	}
+
+	void LeavePlane(Vector3 spot)
+	{
+		PlaneController plane = CurrentPlane;
+		plane.SetPilot(false);
+		CurrentPlane = null;
+		player.gameObject.SetActive(true);
+		player.Teleport(new Vector3(spot.x, 0.05f, spot.z), plane.transform.eulerAngles.y);
+		cameraRig.SetTarget(player.transform, false);
+		sound.Door();
+	}
+
+	// Get out of whatever you are in (BUSTED, crash)
+	public void LeaveVehicle()
+	{
+		if (InCar)
+			ToggleCar();
+		else if (InPlane)
+			LeavePlane(CurrentPlane.transform.position + CurrentPlane.transform.forward * 22f);
+	}
+
+	// The plane you were flying crashed: you wait at the airport and pay $100
+	public void PlaneCrashed(PlaneController plane)
+	{
+		if (CurrentPlane != plane)
+			return;
+		LeavePlane(new Vector3(plane.Home.x, 0, plane.Home.z - 25f));   // in front of the plane's parking spot
+		int fine = Mathf.Min(Money, 100);
+		AddMoney(-fine);
+		ShowBig("CRASHED", Lingala.PlaneCrash.lingala + (fine > 0 ? "  ·  -$" + fine : ""), new Color(1f, 0.35f, 0.3f), 3.5f);
+		Voice.SayToYou(Lingala.PlaneCrash);
 	}
 
 	// Find free space next to the car: left side, right side, behind, or on the roof
@@ -256,8 +328,14 @@ public class TosakanaGame : MonoBehaviour
 		moneyText.text = "$" + Money.ToString("N0");
 		zoneText.text = missions.ZoneName(Focus.position);
 
-		if (!InCar && NearestCar(player.transform.position, enterCarDistance) != null)
+		if (InPlane)
+			hintText.text = CurrentPlane.OnGround && Mathf.Abs(CurrentPlane.Speed) < 3f
+				? "W speed up · A/D turn · ↑ or Space climb (when fast)  ·  E get out"
+				: "W/S speed · A/D turn · ↑ or Space climb · ↓ or C dive";
+		else if (!InCar && NearestCar(player.transform.position, enterCarDistance) != null)
 			hintText.text = "Press E to get in the car  ·  <i>" + Lingala.GetInCar.lingala + "</i>";
+		else if (!InCar && NearestPlane(player.transform.position, enterPlaneDistance) != null)
+			hintText.text = "Press E to get in the plane  ·  <i>" + Lingala.GetInPlane.lingala + "</i>";
 		else if (!InCar && NearestPerson(4.5f) != null)
 			hintText.text = "Press T to talk  ·  <i>" + Lingala.Talk.lingala + "</i>";
 		else if (InCar && Mathf.Abs(CurrentCar.Speed) < 1f)
@@ -265,7 +343,8 @@ public class TosakanaGame : MonoBehaviour
 		else
 			hintText.text = "";
 
-		speedText.text = InCar ? Mathf.RoundToInt(Mathf.Abs(CurrentCar.Speed) * 3.6f) + " km/h" : "";
+		speedText.text = InPlane ? Mathf.RoundToInt(CurrentPlane.Speed * 3.6f) + " km/h  ·  " + Mathf.RoundToInt(CurrentPlane.Altitude) + " m"
+			: InCar ? Mathf.RoundToInt(Mathf.Abs(CurrentCar.Speed) * 3.6f) + " km/h" : "";
 
 		// Entering a new commune: "Bokomi malamu na LEMBA" (Welcome to Lemba)
 		string commune = missions.CommuneAt(Focus.position);

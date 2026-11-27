@@ -67,7 +67,7 @@ public class PoliceFoot : MonoBehaviour
 		}
 
 		PoliceManager pm = PoliceManager.Instance;
-		if (pm == null || pm.Stars == 0 || game.InCar)
+		if (pm == null || pm.Stars == 0 || game.InVehicle)
 			Returning = true;
 
 		if (Returning)

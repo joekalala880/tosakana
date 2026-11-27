@@ -245,7 +245,7 @@ public class MissionManager : MonoBehaviour
 			d.y = 0;
 			distance = "   <color=#ffd84d>" + Mathf.RoundToInt(d.magnitude) + " m</color>";
 		}
-		string tip = game != null && !game.InCar ? "\n<color=#9fd3ff>Tip: press E near a car to drive.</color>" : "";
+		string tip = game != null && !game.InVehicle ? "\n<color=#9fd3ff>Tip: press E near a car to drive.</color>" : "";
 
 		switch (CurrentStep)
 		{

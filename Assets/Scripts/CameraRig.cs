@@ -20,10 +20,20 @@ public class CameraRig : MonoBehaviour
 	float lastMouse = -10f;
 	const int Mask = ~((1 << 2) | (1 << 31));   // ignore the player, cars and map icons
 
+	float customDistance, customHeight;
+
 	public void SetTarget(Transform t, bool car)
+	{
+		SetTarget(t, car, 0f, 0f);
+	}
+
+	// A plane needs the camera further back: give a distance and height
+	public void SetTarget(Transform t, bool car, float distance, float height)
 	{
 		target = t;
 		followCar = car;
+		customDistance = distance;
+		customHeight = height;
 		if (car)
 			yaw = t.eulerAngles.y;
 	}
@@ -64,8 +74,8 @@ public class CameraRig : MonoBehaviour
 			pitch = Mathf.Lerp(pitch, 10f, dt * 2f);
 		}
 
-		float distance = followCar ? carDistance : footDistance;
-		float height = followCar ? carHeight : footHeight;
+		float distance = customDistance > 0 ? customDistance : followCar ? carDistance : footDistance;
+		float height = customHeight > 0 ? customHeight : followCar ? carHeight : footHeight;
 		Vector3 pivot = target.position + Vector3.up * height;
 		Vector3 back = Quaternion.Euler(pitch, yaw, 0) * Vector3.back;
 		Vector3 want = pivot + back * distance;
