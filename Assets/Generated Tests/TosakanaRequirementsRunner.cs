@@ -411,8 +411,14 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		// ================= Version 5: voices and roulage =================
 		Check("No speech bubbles: people talk out loud (no bubbles in the city)", GameObject.Find("Speech Bubble") == null && friend.GetComponent<VoiceSpeaker>() != null);
 		VoiceSpeaker friendVoice = friend.GetComponent<VoiceSpeaker>();
-		Check("A line that is not recorded yet plays a soft murmur (" + (friendVoice.CurrentClip != null ? friendVoice.CurrentClip.name : "none") + ")",
-			!friendVoice.LastWasRecording && friendVoice.CurrentClip != null && friendVoice.CurrentClip.name.StartsWith("Murmur") && friendVoice.CurrentClip.length > 0.2f);
+		Check("People speak with your recorded voice (" + (friendVoice.CurrentClip != null ? friendVoice.CurrentClip.name : "none") + ")",
+			friendVoice.LastWasRecording && friendVoice.CurrentClip != null && !friendVoice.CurrentClip.name.StartsWith("Murmur"));
+		int withVoice = 0;
+		foreach (var kv in Lingala.AllSpoken())
+			if (Voice.HasRecording(kv.Value)) withVoice++;
+		Check("Lines recorded in your voice: " + withVoice + " / " + Lingala.AllSpoken().Count, withVoice == Lingala.AllSpoken().Count);
+		AudioClip murmur = Voice.Murmur(new Lingala.Line("Test murmur line", "test"));
+		Check("A new line with no recording yet would play a soft murmur", murmur != null && murmur.length > 0.2f);
 		var spoken = Lingala.AllSpoken();
 		var keys = new System.Collections.Generic.HashSet<string>();
 		bool keysOk = true;

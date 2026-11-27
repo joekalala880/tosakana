@@ -53,8 +53,12 @@ public static class Voice
 		}
 	}
 
+	// murmurIfNotRecorded = false means "only if recorded, and don't cut off someone who is already talking"
+	// (used for the commune welcomes, so they never interrupt a blessing or BUSTED)
 	public static void SayToYou(Lingala.Line line, bool murmurIfNotRecorded = true)
 	{
+		if (!murmurIfNotRecorded && Narrator.Speaking)
+			return;
 		Narrator.Speak(line, murmurIfNotRecorded);
 	}
 
