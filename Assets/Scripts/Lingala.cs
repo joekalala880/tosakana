@@ -107,6 +107,8 @@ public static class Lingala
 		L("Leka! Leka!", "Go! Go!"),
 		L("Telema kuna!", "Stop there!"),
 		L("Kende malembe!", "Go slowly!"),
+		L("Zela!", "Wait!"),
+		L("Pesa ngai permis!", "Give me your license!"),
 	};
 
 	// The customer when you pick up the package

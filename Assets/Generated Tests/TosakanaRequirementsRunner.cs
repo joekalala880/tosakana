@@ -411,7 +411,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		bool keysOk = true;
 		foreach (var kv in spoken)
 			keysOk &= kv.Value.Key.Length > 0 && keys.Add(kv.Value.Key);
-		Check("Every line has its own recording name (" + spoken.Count + " lines to record)", keysOk && spoken.Count >= 50);
+		Check("Every line has its own recording name (" + spoken.Count + " lines to record)", keysOk && spoken.Count >= 55);
 		string wav = System.IO.Path.Combine(Application.temporaryCachePath, "tosakana_test.wav");
 		float[] tone = new float[22050];
 		for (int i = 0; i < tone.Length; i++) tone[i] = Mathf.Sin(i * 0.1f) * 0.5f;

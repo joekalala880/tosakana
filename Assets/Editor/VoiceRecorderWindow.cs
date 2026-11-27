@@ -58,7 +58,7 @@ public class VoiceRecorderWindow : EditorWindow
 
 		EditorGUILayout.LabelField("Tosakana voices", EditorStyles.boldLabel);
 		EditorGUILayout.HelpBox("Record each line in Lingala with your voice. Click ● Record, say the line, then click ■ Stop. " +
-			"Click ▶ to listen, ● again to record it again.\nLines you did not record yet play a soft murmur in the game.", MessageType.Info);
+			"Click ▶ to listen, ● again to record it again.\n✔ = your voice.  PC = computer voice (your recording replaces it).  Empty = a soft murmur plays.", MessageType.Info);
 
 		string[] devices = Microphone.devices;
 		if (devices.Length == 0)
@@ -90,7 +90,8 @@ public class VoiceRecorderWindow : EditorWindow
 			bool recorded = IsRecorded(line);
 			bool thisOne = recordingKey == line.Key;
 			EditorGUILayout.BeginHorizontal();
-			GUILayout.Label(recorded ? "✔" : "  ", GUILayout.Width(18));
+			bool computer = File.Exists(Folder + "/Computer/" + line.Key + ".wav");
+			GUILayout.Label(recorded ? "✔" : computer ? "PC" : "  ", GUILayout.Width(22));
 			EditorGUILayout.BeginVertical();
 			GUILayout.Label(line.lingala, EditorStyles.boldLabel);
 			GUILayout.Label(line.english, EditorStyles.miniLabel);

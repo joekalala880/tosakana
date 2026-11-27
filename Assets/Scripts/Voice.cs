@@ -3,6 +3,7 @@ using UnityEngine;
 
 // Plays the Lingala lines out loud.
 // Your recordings live in Assets/Resources/Voices/<line name>.wav (make them with Tools > Tosakana > Record Voices).
+// A computer voice can live in Assets/Resources/Voices/Computer/<line name>.wav. Your own recording always wins.
 // A line you did not record yet plays a soft "murmur" that follows the vowels of the words, so the city is never silent.
 public static class Voice
 {
@@ -17,6 +18,8 @@ public static class Voice
 		if (!recordings.TryGetValue(key, out clip))
 		{
 			clip = Resources.Load<AudioClip>("Voices/" + key);
+			if (clip == null)
+				clip = Resources.Load<AudioClip>("Voices/Computer/" + key);
 			recordings[key] = clip;
 		}
 		return clip;
