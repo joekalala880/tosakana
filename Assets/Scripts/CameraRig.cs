@@ -41,8 +41,8 @@ public class CameraRig : MonoBehaviour
 		if (titleMode)
 		{
 			yaw += dt * 5f;
-			Vector3 center = new Vector3(0, 10, 0);
-			transform.position = center + Quaternion.Euler(0, yaw, 0) * new Vector3(0, 110, -250);
+			Vector3 center = new Vector3(230, 10, -20);
+			transform.position = center + Quaternion.Euler(0, yaw, 0) * new Vector3(0, 190, -420);
 			transform.LookAt(center);
 			return;
 		}

@@ -32,7 +32,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		foreach (Transform t in GameObject.Find("City").GetComponentsInChildren<Transform>())
 			if (t.name == "Building" || t.name == "Warehouse") buildings++;
 		Check("City is built (" + buildings + " buildings, " + CarController.All.Count + " cars, " + missions.places.Length + " places)",
-			buildings > 200 && CarController.All.Count >= 25 && missions.places.Length == 16);
+			buildings > 450 && CarController.All.Count >= 40 && missions.places.Length == 22);
 
 		game.StartGame();
 		yield return null;
@@ -275,7 +275,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		pm.ResetWanted();
 		pm.enabled = true;
 		yield return null;
-		Check("2 police cars patrol the city (" + pm.Police.Count + "), no stars yet", pm.Police.Count >= 2 && pm.Stars == 0 && pm.ChasingCount == 0 && StarsLit(pm) == 0);
+		Check("Police cars patrol the city (" + pm.Police.Count + "), no stars yet", pm.Police.Count >= 2 && pm.Stars == 0 && pm.ChasingCount == 0 && StarsLit(pm) == 0);
 		PoliceLights firstLights = pm.Police[0].GetComponent<PoliceLights>();
 		Check("Police cars show on the mini-map", firstLights.mapIcon.gameObject.layer == 31 && firstLights.mapIcon.gameObject.activeInHierarchy);
 
@@ -286,10 +286,13 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		ClearAround(new Vector3(-8f, 0, -87f), 25f, stopCar);
 		stopCar.Teleport(new Vector3(-20f, 0f, -87f), 90f);
 		victim.transform.position = new Vector3(-8f, 0.06f, -87f);
+		yield return null;
 		stopCar.testThrottle = 1;
-		yield return new WaitForSeconds(1.5f);
+		yield return new WaitForSeconds(0.6f);
 		stopCar.testThrottle = 0;
+		victim.KnockDown(stopCar);   // (the crash itself is checked in Version 2)
 		stopCar.testBrake = true;
+		yield return null;
 		Check("Hitting a person with your car = 1 wanted star (\"" + pm.wantedText.text + "\")", victim.IsDown && pm.Stars == 1 && StarsLit(pm) == 1);
 		victim.testHold = false;
 		victim.testNoDodge = false;
@@ -359,7 +362,8 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		pm.ResetWanted();
 
 		// ================= Version 4: Kinshasa communes and Lingala =================
-		string[] communes = { "Gombe", "Matonge", "Lemba", "Ngiri-Ngiri", "Bandal", "Bumbu", "Selembao", "Mont-Ngafula", "Kintambo", "Limete", "Kalamu", "Lingwala" };
+		string[] communes = { "Gombe", "Matonge", "Lemba", "Ngiri-Ngiri", "Bandal", "Bumbu", "Selembao", "Mont-Ngafula", "Kintambo", "Limete", "Kalamu", "Lingwala",
+			"Matete", "Masina", "N'djili", "Kimbanseke", "Kingasani" };
 		int found = 0;
 		string missing = "";
 		foreach (string name in communes)
@@ -368,7 +372,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 			if (place != null && missions.CommuneAt(place.transform.position) == name) found++;
 			else missing += name + " ";
 		}
-		Check("All 12 communes are in the city, each with a mission place (" + found + "/12) " + missing, found == 12);
+		Check("All 17 communes are in the city, each with a mission place (" + found + "/17) " + missing, found == 17);
 
 		if (game.InCar) game.ToggleCar();
 		yield return null;
@@ -384,6 +388,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		friend.testNoDodge = true;
 		friend.transform.position = player.transform.position + new Vector3(1.8f, 0.01f, 0.5f);
 		ClearAround(player.transform.position, 8f);
+		ClearPeopleAround(player.transform.position, 6f, friend);
 		yield return null;
 		yield return null;
 		Check("Hint: \"" + game.hintText.text + "\"", game.hintText.text.Contains("Press T to talk") && game.hintText.text.Contains("Loba"));
@@ -423,7 +428,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		// Roulage
 		int switches = 0;
 		foreach (TrafficOfficer o in TrafficOfficer.All) switches += o.Switches;
-		Check("Roulage officers stand at " + TrafficOfficer.All.Count + " crossroads and switch the traffic (" + switches + " whistles)", TrafficOfficer.All.Count == 5 && switches >= 5);
+		Check("Roulage officers stand at " + TrafficOfficer.All.Count + " crossroads and switch the traffic (" + switches + " whistles)", TrafficOfficer.All.Count == 6 && switches >= 6);
 
 		TrafficOfficer officer = TrafficOfficer.At(3, 2);
 		officer.testFreeze = true;
@@ -442,7 +447,10 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 
 		// Don't hit the roulage!
 		pm.ResetWanted();
-		TrafficOfficer target = TrafficOfficer.At(2, 4);
+		TrafficOfficer target = TrafficOfficer.All.Find(o => o.nodeA == 2 && o.nodeB == 4);
+		float upWait = Time.time + 6f;
+		while (target.IsDown && Time.time < upWait)
+			yield return null;
 		Vector3 spot = target.transform.position;
 		if (!game.InCar)
 		{
@@ -462,6 +470,138 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		myCar.testBrake = false;
 		pm.ResetWanted();
 
+		// ================= Version 6: fights, bigger Kinshasa, the airport =================
+		if (game.InCar) game.ToggleCar();
+		pm.ResetWanted();
+		pm.enabled = false;   // keep the police away during the first fights
+		yield return null;
+		PlayerCombat fists = player.GetComponent<PlayerCombat>();
+		fists.Heal();
+		player.Teleport(new Vector3(58f, 0.05f, -94.6f), 90f);   // Lemba sidewalk
+
+		// Punch someone who runs away
+		Pedestrian runner = Pedestrian.All.Find(p => !p.IsDown && !p.Crossing && p.CurrentMood == Pedestrian.Mood.Walk);
+		runner.testHold = true;
+		runner.testNoDodge = true;
+		runner.testForceFlee = true;
+		runner.transform.position = player.transform.position + new Vector3(1.2f, 0.01f, 0);
+		ClearPeopleAround(player.transform.position, 4f, runner);
+		yield return null;
+		Component hit = fists.Punch();
+		Check("Left click / R = punch: the person falls (\"" + Said(runner.gameObject) + "\")", hit == runner && runner.IsDown && runner.Punched == 1);
+		Check("Hitting a person = 1 wanted star (" + pm.Stars + ")", pm.Stars == 1);
+		runner.testHold = false;
+		Vector3 fleeFrom = runner.transform.position;
+		yield return new WaitForSeconds(4.5f);
+		Check("Some people run away shouting \"" + Said(runner.gameObject) + "\" (" + Flat(runner.transform.position - fleeFrom).ToString("0") + " m)",
+			runner.CurrentMood == Pedestrian.Mood.Flee && Flat(runner.transform.position - fleeFrom) > 5f && IsLine(Said(runner.gameObject), Lingala.Help));
+		runner.testForceFlee = false;
+		runner.testNoDodge = false;
+
+		// Punch someone who fights back
+		Pedestrian boxer = Pedestrian.All.Find(p => p != runner && !p.IsDown && !p.Crossing && p.CurrentMood == Pedestrian.Mood.Walk);
+		boxer.testHold = true;
+		boxer.testNoDodge = true;
+		boxer.testForceFight = true;
+		boxer.transform.position = player.transform.position + new Vector3(-1.2f, 0.01f, 0);
+		ClearPeopleAround(player.transform.position, 4f, boxer);
+		fists.Heal();
+		yield return new WaitForSeconds(0.5f);
+		int healthBefore = fists.Health;
+		fists.Punch();
+		boxer.testHold = false;
+		yield return new WaitForSeconds(5f);
+		Check("Some people fight back (\"" + Said(boxer.gameObject) + "\"): your health " + healthBefore + " -> " + fists.Health,
+			boxer.CurrentMood == Pedestrian.Mood.Fight && fists.Health < healthBefore && IsLine(Said(boxer.gameObject), Lingala.FightBack));
+		Component again = fists.Punch();
+		Check("You can punch back (they fall again)", again == boxer && boxer.IsDown && boxer.Punched == 2);
+		fists.SetHealth(5);
+		float koWait = Time.time + 8f;
+		while (fists.KnockOuts == 0 && Time.time < koWait)
+			yield return null;
+		Check("When your health runs out: KNOCKED OUT (\"" + game.bigSubText.text + "\"), back at the start with full health",
+			fists.KnockOuts == 1 && game.bigText.text == "KNOCKED OUT" && Flat(player.transform.position - game.RespawnPoint) < 1f && fists.Health == fists.maxHealth);
+		boxer.testForceFight = false;
+		boxer.testNoDodge = false;
+
+		// Police on foot
+		pm.ResetWanted();
+		pm.enabled = true;
+		pm.bustSeconds = 60f;   // no BUSTED while we fight
+		fists.Heal();
+		pm.ReportCrime(2, "Fight test");
+		float copWait = Time.time + 40f;
+		while (PoliceFoot.All.Count == 0 && Time.time < copWait)
+			yield return null;
+		Check("Wanted and walking: police get out of their car (" + PoliceFoot.All.Count + " on foot)", PoliceFoot.All.Count >= 1);
+		PoliceFoot cop2 = PoliceFoot.All.Count > 0 ? PoliceFoot.All[0] : null;
+		float near2 = Time.time + 12f;
+		while (cop2 != null && Flat(cop2.transform.position - player.transform.position) > 2f && Time.time < near2)
+			yield return null;
+		Check("The officer runs to you and shouts (\"" + (cop2 != null ? Said(cop2.gameObject) : "") + "\")", cop2 != null && Flat(cop2.transform.position - player.transform.position) < 2.5f && IsLine(Said(cop2.gameObject), Lingala.PoliceOnFoot));
+		int starsBefore = pm.Stars;
+		for (int k = 0; k < 6 && cop2 != null && !cop2.IsDown; k++)
+		{
+			player.transform.rotation = Quaternion.LookRotation(cop2.transform.position - player.transform.position);
+			// make sure he is the closest one
+			foreach (PoliceFoot other in PoliceFoot.All)
+				if (other != cop2) other.transform.position += Vector3.right * 6f;
+			cop2.transform.position = player.transform.position + player.transform.forward * 1.1f;
+			fists.Punch();
+			yield return new WaitForSeconds(0.55f);
+		}
+		Check("Three punches knock a police officer down (stars " + starsBefore + " -> " + pm.Stars + ")", cop2 != null && cop2.IsDown && pm.Stars > starsBefore);
+		pm.bustSeconds = 1.5f;
+		int bustsBefore = pm.Busts;
+		float bustWait = Time.time + 40f;
+		while (pm.Busts == bustsBefore && Time.time < bustWait)
+			yield return null;
+		Check("Stand still next to the police = BUSTED", pm.Busts == bustsBefore + 1 && PoliceFoot.All.Count == 0);
+
+		// Boulevard Lumumba to N'djili airport
+		pm.ResetWanted();
+		pm.enabled = false;
+		player.Teleport(taxi.transform.position - taxi.transform.right * 2.3f, 0f);
+		yield return null;
+		game.ToggleCar();
+		CarController ride = game.CurrentCar;
+		ClearAround(new Vector3(570f, 0, 29f), 60f, ride);
+		ride.Teleport(new Vector3(528f, 0f, 29f), 90f);
+		ride.testThrottle = 1;
+		yield return new WaitForSeconds(4f);
+		ride.testThrottle = 0;
+		ride.testBrake = true;
+		yield return new WaitForSeconds(1f);
+		Check("Boulevard Lumumba takes you out of town to the airport (x " + ride.transform.position.x.ToString("0") + ", \"" + game.zoneText.text + "\")",
+			ride.transform.position.x > 600f && game.zoneText.text == "Aéroport de N'djili");
+		Check("Welcome banner: \"" + game.areaBanner.text + "\"", game.areaBanner.text.Contains("N'DJILI"));
+		int planes = 0;
+		foreach (Transform t in GameObject.Find("City").GetComponentsInChildren<Transform>())
+			if (t.name.StartsWith("Plane")) planes++;
+		PlaneTakeoff flyer = FindObjectOfType<PlaneTakeoff>();
+		float flyX = flyer.transform.position.x;
+		yield return new WaitForSeconds(1f);
+		Check("Planes at the airport (" + planes + "), one takes off again and again (" + flyer.Takeoffs + " takeoffs so far)",
+			planes >= 4 && (flyer.Takeoffs >= 1 || Mathf.Abs(flyer.transform.position.x - flyX) > 5f));
+		Place airport = System.Array.Find(missions.places, pl => pl.placeName == "Aéroport de N'djili");
+		Check("The airport is a mission place", airport != null);
+
+		// The police follow you there
+		pm.enabled = true;
+		pm.ReportCrime(2, "Airport test");
+		float closestAir = float.MaxValue;
+		float airWait = Time.time + 60f;
+		while (closestAir > 30f && Time.time < airWait)
+		{
+			foreach (TrafficDriver d in pm.Police)
+				if (d != null && d.Chasing)
+					closestAir = Mathf.Min(closestAir, Flat(d.transform.position - ride.transform.position));
+			yield return null;
+		}
+		Check("The police follow you to the airport (closest " + closestAir.ToString("0") + " m)", closestAir < 30f);
+		ride.testBrake = false;
+		pm.ResetWanted();
+
 		Debug.Log("TOSAKANA-CHECK DONE: " + passed + " passed, " + failed + " failed");
 	}
 
@@ -478,6 +618,14 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		foreach (CarController car in CarController.All.ToArray())
 			if (car != taxi && car != keep && Flat(car.transform.position - p) < radius)
 				car.Teleport(new Vector3(-250f - 8f * k++, 0f, -250f), 0f);
+	}
+
+	// Moves other people a little away (so the right person is the closest)
+	static void ClearPeopleAround(Vector3 p, float radius, Pedestrian keep)
+	{
+		foreach (Pedestrian other in Pedestrian.All)
+			if (other != keep && Flat(other.transform.position - p) < radius)
+				other.transform.position += (other.transform.position - p).normalized * radius + Vector3.forward * 0.1f;
 	}
 
 	// Inside the sidewalk ring of a block (between 19.5 and 23 m from the block center, along one side)

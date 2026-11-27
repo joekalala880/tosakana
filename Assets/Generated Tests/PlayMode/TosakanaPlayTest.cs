@@ -10,7 +10,7 @@ using UnityEngine.TestTools;
 // then fails if any of its checks failed. Run from the command line with -runTests -testPlatform PlayMode.
 public class TosakanaPlayTest
 {
-	[UnityTest]
+	[UnityTest, Timeout(1000000)]
 	public IEnumerator AllRequirementsPass()
 	{
 		var log = new StringBuilder();
@@ -29,7 +29,7 @@ public class TosakanaPlayTest
 		Type runner = Type.GetType("TosakanaRequirementsRunner, Assembly-CSharp");
 		new GameObject("TosakanaRequirementsRunner").AddComponent(runner);
 
-		float timeout = Time.realtimeSinceStartup + 90;
+		float timeout = Time.realtimeSinceStartup + 900;
 		while (done == null && Time.realtimeSinceStartup < timeout)
 			yield return null;
 

@@ -9,7 +9,7 @@ using UnityEngine.TestTools;
 [Explicit("Saves preview pictures; run on purpose with -testFilter TosakanaSnapshot")]
 public class TosakanaSnapshot
 {
-	[UnityTest]
+	[UnityTest, Timeout(700000)]
 	public IEnumerator TakePictures()
 	{
 		SceneManager.LoadScene("Main");
@@ -17,7 +17,7 @@ public class TosakanaSnapshot
 		Type taker = Type.GetType("TosakanaSnapshotTaker, Assembly-CSharp");
 		Component c = new GameObject("Snapshot").AddComponent(taker);
 		var finished = taker.GetProperty("Finished");
-		float timeout = Time.realtimeSinceStartup + 120;
+		float timeout = Time.realtimeSinceStartup + 600;
 		while (!(bool)finished.GetValue(c) && Time.realtimeSinceStartup < timeout)
 			yield return null;
 		Assert.IsTrue((bool)finished.GetValue(c));

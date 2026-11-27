@@ -8,10 +8,11 @@ public class GameSound : MonoBehaviour
 	[Range(0, 1)] public float effectsVolume = 0.8f;
 
 	AudioSource engine, city, effects;
-	AudioClip doorClip, pickupClip, passedClip, failedClip, crashClip, hornClip, whistleClip;
+	AudioClip doorClip, pickupClip, passedClip, failedClip, crashClip, hornClip, whistleClip, punchClip, whooshClip;
 	float crashCooldown;
 
 	public AudioClip SirenClip { get; private set; }
+	public AudioClip JetClip { get; private set; }
 	public float EngineVolume { get { return engine.volume; } }
 	public float EnginePitch { get { return engine.pitch; } }
 
@@ -41,6 +42,9 @@ public class GameSound : MonoBehaviour
 		hornClip = MakeHorn();
 		SirenClip = MakeSiren();
 		whistleClip = MakeWhistle();
+		punchClip = Thump("Punch", 0.12f, 160f);
+		whooshClip = Noise("Whoosh", 0.18f, 0.12f, false);
+		JetClip = Noise("Jet", 3f, 0.09f, true);
 	}
 
 	void Update()
@@ -66,6 +70,8 @@ public class GameSound : MonoBehaviour
 	// Sounds that come from a place in the city (a car honking at you, someone getting hit)
 	public void HornAt(Vector3 position) { AudioSource.PlayClipAtPoint(hornClip, position, effectsVolume * 0.7f); }
 	public void BumpAt(Vector3 position) { AudioSource.PlayClipAtPoint(doorClip, position, effectsVolume); }
+	public void PunchAt(Vector3 position) { AudioSource.PlayClipAtPoint(punchClip, position, effectsVolume); }
+	public void Whoosh() { effects.PlayOneShot(whooshClip, effectsVolume * 0.5f); }
 	public void WhistleAt(Vector3 position) { AudioSource.PlayClipAtPoint(whistleClip, position, effectsVolume * 0.8f); }
 
 	public void Crash()

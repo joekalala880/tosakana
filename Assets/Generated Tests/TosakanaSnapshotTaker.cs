@@ -200,6 +200,44 @@ public class TosakanaSnapshotTaker : MonoBehaviour
 		rig.SetPitch(8f);
 		yield return new WaitForSeconds(1f);
 		Save(cam, rt, folder, "19_roulage_officer");
+
+		// Version 6: a fight
+		pm.enabled = false;
+		pm.ResetWanted();
+		game.player.Teleport(new Vector3(10f, 0.05f, -36.6f), 90f);   // a Kalamu sidewalk
+		Pedestrian boxer = null;
+		foreach (Pedestrian p in Pedestrian.All)
+			if (!p.IsDown && !p.Crossing) { boxer = p; break; }
+		boxer.testForceFight = true;
+		boxer.testNoDodge = true;
+		boxer.transform.position = new Vector3(11.3f, 0.06f, -36.6f);
+		rig.SetYaw(20f);
+		rig.SetPitch(10f);
+		yield return null;
+		game.player.GetComponent<PlayerCombat>().Punch();
+		yield return new WaitForSeconds(0.15f);
+		Save(cam, rt, folder, "20_punch");
+		yield return new WaitForSeconds(3.6f);
+		Save(cam, rt, folder, "21_they_fight_back");
+		boxer.testForceFight = false;
+		boxer.testNoDodge = false;
+		boxer.CalmDown();
+
+		// The airport
+		game.player.Teleport(new Vector3(700f, 0.05f, 40f), 120f);
+		rig.SetYaw(125f);
+		rig.SetPitch(4f);
+		PlaneTakeoff flyer = FindObjectOfType<PlaneTakeoff>();
+		float planeWait = Time.time + 60f;
+		while (Time.time < planeWait && !(flyer.Flying && flyer.transform.position.y > 15f))
+			yield return null;
+		Save(cam, rt, folder, "22_ndjili_airport_takeoff");
+
+		game.player.Teleport(new Vector3(850f, 0.05f, 20f), 0f);
+		rig.SetYaw(0f);
+		rig.SetPitch(8f);
+		yield return new WaitForSeconds(0.4f);
+		Save(cam, rt, folder, "23_ndjili_terminal");
 		Finished = true;
 	}
 

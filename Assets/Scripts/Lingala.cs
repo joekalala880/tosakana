@@ -101,6 +101,28 @@ public static class Lingala
 		L("Polisi! Telema!", "Police! Stop!"),
 	};
 
+	// Someone you hit runs away
+	public static readonly Line[] Help =
+	{
+		L("Bosalisa ngai!", "Help me!"),
+		L("Mama! Bosalisa!", "Mama! Help!"),
+	};
+
+	// Someone you hit fights back
+	public static readonly Line[] FightBack =
+	{
+		L("Yaka! Tobunda!", "Come! Let's fight!"),
+		L("Ozali kobeta ngai?", "You're hitting me?"),
+	};
+
+	// Police officers on foot
+	public static readonly Line[] PoliceOnFoot =
+	{
+		L("Maboko likolo!", "Hands up!"),
+		L("Tika kobunda!", "Stop fighting!"),
+		L("Kanga ye!", "Catch him!"),
+	};
+
 	// Roulage (traffic police) at the crossroads
 	public static readonly Line[] Roulage =
 	{
@@ -127,7 +149,8 @@ public static class Lingala
 	};
 
 	// Welcome to each commune (only plays if you recorded it)
-	public static readonly string[] CommuneNames = { "Gombe", "Matonge", "Lemba", "Ngiri-Ngiri", "Bandal", "Bumbu", "Selembao", "Mont-Ngafula", "Kintambo", "Limete", "Kalamu", "Lingwala" };
+	public static readonly string[] CommuneNames = { "Gombe", "Matonge", "Lemba", "Ngiri-Ngiri", "Bandal", "Bumbu", "Selembao", "Mont-Ngafula", "Kintambo", "Limete", "Kalamu", "Lingwala",
+		"Matete", "Masina", "N'djili", "Kimbanseke", "Kingasani", "Aéroport de N'djili" };
 	public static Line WelcomeTo(string commune) { return L("Bokomi malamu na " + commune + "!", "Welcome to " + commune + "!"); }
 
 	// Big messages
@@ -136,6 +159,7 @@ public static class Lingala
 	public static readonly Line TooSlow = L("Malembe mingi!", "Too slow!");
 	public static readonly Line Busted = L("Bakangi yo!", "They caught you!");
 	public static readonly Line Escaped = L("Okimi bapolisi!", "You escaped the police!");
+	public static readonly Line KnockedOut = L("Babeti yo!", "They beat you!");
 	public static readonly Line GetInCar = L("Kota na motuka", "Get in the car");
 	public static readonly Line Talk = L("Loba", "Talk");
 
@@ -169,7 +193,10 @@ public static class Lingala
 		add("Roulage", Roulage);
 		add("Customer (pick up)", Pickup);
 		add("Mission passed (blessing)", Blessings);
-		add("Messages", new[] { TooSlow, Busted, Escaped });
+		add("You hit someone: they run", Help);
+		add("You hit someone: they fight back", FightBack);
+		add("Police on foot", PoliceOnFoot);
+		add("Messages", new[] { TooSlow, Busted, Escaped, KnockedOut });
 		var welcomes = new Line[CommuneNames.Length];
 		for (int i = 0; i < CommuneNames.Length; i++)
 			welcomes[i] = WelcomeTo(CommuneNames[i]);

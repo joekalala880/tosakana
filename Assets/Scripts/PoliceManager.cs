@@ -10,6 +10,8 @@ public class PoliceManager : MonoBehaviour
 	public static PoliceManager Instance { get; private set; }
 
 	public GameObject policePrefab;
+	public GameObject officerPrefab;        // police on foot
+	public int maxOfficersOnFoot = 3;
 	public int patrolCars = 2;
 	public int maxStars = 5;
 	public float escapeDistance = 70f;
@@ -141,10 +143,10 @@ public class PoliceManager : MonoBehaviour
 		foreach (TrafficDriver d in Police)
 			if (d.Chasing && Flat(d.transform.position - game.Focus.position) < escapeDistance)
 				near = true;
-		// You can only lose the police after they found you (or after 20 s if they never come)
+		// You can only lose the police after they found you (or after 45 s if they never come; the city is big)
 		if (near)
 			Seen = true;
-		bool canEscape = Seen || Time.time - wantedSince > 20f;
+		bool canEscape = Seen || Time.time - wantedSince > 45f;
 		escapeTimer = near || !canEscape ? 0 : escapeTimer + dt;
 		if (escapeTimer > EscapeTime)
 		{
@@ -152,8 +154,28 @@ public class PoliceManager : MonoBehaviour
 			return;
 		}
 
+		// You are walking: officers get out of cars that are close and slow
+		if (!game.InCar && officerPrefab != null)
+			foreach (TrafficDriver d in Police)
+			{
+				if (!d.Chasing || d.OfficerOut || PoliceFoot.All.Count >= maxOfficersOnFoot)
+					continue;
+				if (Flat(d.transform.position - game.Focus.position) < 25f && Mathf.Abs(d.Car.Speed) < 6f)
+				{
+					Transform t = d.transform;
+					Vector3 spot = t.position - t.right * 2.4f;
+					GameObject go = Instantiate(officerPrefab, new Vector3(spot.x, 0.06f, spot.z), t.rotation);
+					go.name = "Police Officer";
+					go.GetComponent<PoliceFoot>().Init(d);
+				}
+			}
+
 		// Caught: a police car right next to you while you are stopped
 		bool caught = false;
+		if (!game.InCar)
+			foreach (PoliceFoot cop in PoliceFoot.All)
+				if (!cop.IsDown && !cop.Returning && Flat(cop.transform.position - game.Focus.position) < 1.8f)
+					caught = true;
 		foreach (TrafficDriver d in Police)
 		{
 			if (!d.Chasing)
@@ -231,6 +253,8 @@ public class PoliceManager : MonoBehaviour
 		bustTimer = 0;
 		if (game.InCar)
 			game.ToggleCar();
+		foreach (PoliceFoot cop in PoliceFoot.All.ToArray())
+			Destroy(cop.gameObject);
 		game.player.Teleport(game.RespawnPoint, 90f);
 		game.cameraRig.SetYaw(90f);
 		game.ShowBig("BUSTED", (fine > 0 ? "Fine: -$" + fine + "  ·  " : "") + Lingala.Busted.lingala, new Color(1f, 0.3f, 0.3f), 3.5f);
@@ -243,9 +267,23 @@ public class PoliceManager : MonoBehaviour
 		UpdateStars();
 	}
 
+	// After KNOCKED OUT: no more stars, no more chase
+	public void StopEverything()
+	{
+		Stars = 0;
+		escapeTimer = 0;
+		bustTimer = 0;
+		foreach (PoliceFoot cop in PoliceFoot.All.ToArray())
+			Destroy(cop.gameObject);
+		SendExtraPoliceAway();
+		UpdateStars();
+	}
+
 	// Stop all chases and keep only the patrol cars
 	void SendExtraPoliceAway()
 	{
+		foreach (PoliceFoot cop in PoliceFoot.All)
+			cop.GoBack();
 		foreach (TrafficDriver d in Police)
 			d.SetChasing(false);
 		while (Police.Count > patrolCars)

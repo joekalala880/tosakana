@@ -23,6 +23,14 @@ public class Pedestrian : MonoBehaviour
 	[HideInInspector] public bool testNoDodge;  // don't jump away
 
 	public bool IsDown { get { return downTimer > 0; } }
+	public enum Mood { Walk, Flee, Fight }
+	public Mood CurrentMood { get { return mood; } }
+	public int Punched { get; private set; }
+	[Range(0, 1)] public float fightBackChance = 0.3f;
+	[HideInInspector] public bool testForceFight;
+	[HideInInspector] public bool testForceFlee;
+	Mood mood, moodAfterGettingUp;
+	float moodTimer, attackCooldown, punchAnim;
 	public bool Talking { get { return talkTimer > 0; } }
 	public bool Crossing { get; private set; }
 	public int Dodges { get; private set; }
@@ -91,12 +99,21 @@ public class Pedestrian : MonoBehaviour
 			return;
 		float dt = Time.deltaTime;
 
-		// Lying on the ground after a car hit them
+		// Lying on the ground after a car hit them (or you punched them)
 		if (downTimer > 0)
 		{
 			downTimer -= dt;
 			transform.rotation = Quaternion.Euler(downTimer > 0 ? -82f : 0f, yaw, 0);
 			Swing(0);
+			if (downTimer <= 0 && moodAfterGettingUp != Mood.Walk)
+				StartMood(moodAfterGettingUp);
+			return;
+		}
+
+		// After a fight: run away, or fight you
+		if (mood != Mood.Walk)
+		{
+			UpdateMood(dt);
 			return;
 		}
 
@@ -142,6 +159,89 @@ public class Pedestrian : MonoBehaviour
 			Face(to);
 		}
 		Swing(walkSpeed);
+	}
+
+	// You punched them: they fall, then run away or fight back
+	public void TakePunch(PlayerCombat by)
+	{
+		if (IsDown)
+			return;
+		Punched++;
+		Vector3 away = transform.position - by.transform.position;
+		away.y = 0;
+		transform.position += away.normalized * 1f;
+		yaw = Quaternion.LookRotation(-away.normalized).eulerAngles.y;
+		downTimer = 2.5f;
+		dodgeTimer = 0;
+		talkTimer = 0;
+		Voice.Say(gameObject, Lingala.Pick(Lingala.Hit));
+		bool fight = testForceFight || (!testForceFlee && Random.value < fightBackChance);
+		moodAfterGettingUp = fight ? Mood.Fight : Mood.Flee;
+		if (PoliceManager.Instance != null)
+			PoliceManager.Instance.ReportCrime(1, "You hit a person!");
+		// People nearby get scared and run
+		foreach (Pedestrian p in All)
+			if (p != this && !p.IsDown && p.mood == Mood.Walk && Vector3.Distance(p.transform.position, transform.position) < 9f)
+				p.StartMood(Mood.Flee);
+	}
+
+	public void CalmDown()
+	{
+		mood = Mood.Walk;
+		moodAfterGettingUp = Mood.Walk;
+	}
+
+	void StartMood(Mood m)
+	{
+		mood = m;
+		moodTimer = m == Mood.Fight ? 12f : 5f;
+		attackCooldown = 0.8f;
+		moodAfterGettingUp = Mood.Walk;
+		Voice.Say(gameObject, Lingala.Pick(m == Mood.Fight ? Lingala.FightBack : Lingala.Help));
+	}
+
+	void UpdateMood(float dt)
+	{
+		TosakanaGame game = TosakanaGame.Instance;
+		moodTimer -= dt;
+		if (game == null || moodTimer <= 0)
+		{
+			mood = Mood.Walk;
+			return;
+		}
+		Vector3 to = game.player.transform.position - transform.position;
+		to.y = 0;
+		float distance = to.magnitude;
+		if (mood == Mood.Flee)
+		{
+			transform.position += -to.normalized * 5f * dt;
+			Face(-to);
+			Swing(5f);
+			return;
+		}
+		// Fight: walk up to you and punch
+		if (game.InCar || distance > 25f)
+		{
+			mood = Mood.Walk;
+			return;
+		}
+		Face(to);
+		if (distance > 1.2f)
+		{
+			transform.position += to.normalized * 3.8f * dt;
+			Swing(3.8f);
+			return;
+		}
+		Swing(0);
+		attackCooldown -= dt;
+		if (attackCooldown <= 0)
+		{
+			attackCooldown = 1.1f;
+			punchAnim = 0.25f;
+			PlayerCombat combat = game.player.GetComponent<PlayerCombat>();
+			if (combat != null)
+				combat.TakeDamage(8);
+		}
 	}
 
 	// Sometimes people say hello when you walk past
@@ -274,7 +374,9 @@ public class Pedestrian : MonoBehaviour
 		if (leftLeg != null) leftLeg.localRotation = Quaternion.Euler(swing, 0, 0);
 		if (rightLeg != null) rightLeg.localRotation = Quaternion.Euler(-swing, 0, 0);
 		if (leftArm != null) leftArm.localRotation = Quaternion.Euler(-swing * 0.8f, 0, 0);
-		// Someone carrying a basin holds it on their head with the right arm
-		if (rightArm != null) rightArm.localRotation = carriesBasin ? Quaternion.Euler(180f, 0, -12f) : Quaternion.Euler(swing * 0.8f, 0, 0);
+		// Someone carrying a basin holds it on their head with the right arm; a punch shoots it forward
+		punchAnim -= Time.deltaTime;
+		if (rightArm != null)
+			rightArm.localRotation = punchAnim > 0 ? Quaternion.Euler(-90f, 0, 0) : carriesBasin ? Quaternion.Euler(180f, 0, -12f) : Quaternion.Euler(swing * 0.8f, 0, 0);
 	}
 }

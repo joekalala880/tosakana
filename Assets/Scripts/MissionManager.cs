@@ -13,6 +13,10 @@ public class MissionManager : MonoBehaviour
 	public float waitSeconds = 4f;
 	public string boulevardName = "Boulevard du 30 Juin";
 	public float boulevardZ = 29f;
+	public string boulevardEastName = "Boulevard Lumumba";
+	public float boulevardEastX = 203f;     // east of this, the boulevard is Boulevard Lumumba
+	public string airportName = "Aéroport de N'djili";
+	public float airportStartX = 560f;      // east of this is the airport
 
 	[Header("Communes (one row per block row, south to north, names split by commas)")]
 	public string[] communeRows;
@@ -199,6 +203,8 @@ public class MissionManager : MonoBehaviour
 	{
 		if (communeRows == null || communeRows.Length == 0)
 			return "Kinshasa";
+		if (p.x > airportStartX)
+			return airportName;
 		int j = Mathf.Clamp(Mathf.RoundToInt((p.z - communeStart) / communeStep), 0, communeRows.Length - 1);
 		string[] row = communeRows[j].Split(',');
 		int i = Mathf.Clamp(Mathf.RoundToInt((p.x - communeStart) / communeStep), 0, row.Length - 1);
@@ -209,8 +215,8 @@ public class MissionManager : MonoBehaviour
 	public string ZoneName(Vector3 p)
 	{
 		// On the big boulevard you see its name, like a street sign
-		if (Mathf.Abs(p.z - boulevardZ) < 7f)
-			return boulevardName;
+		if (Mathf.Abs(p.z - boulevardZ) < 7f && p.x < airportStartX)
+			return p.x > boulevardEastX ? boulevardEastName : boulevardName;
 		Place best = null;
 		float bestDistance = float.MaxValue;
 		foreach (Place place in places)

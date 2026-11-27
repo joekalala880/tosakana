@@ -53,6 +53,18 @@ public class TrafficManager : MonoBehaviour
 	public static Vector2Int Dir(int heading) { return Dirs[(heading % 4 + 4) % 4]; }
 	public static Vector3 Dir3(int heading) { Vector2Int d = Dir(heading); return new Vector3(d.x, 0, d.y); }
 	public static Vector3 Right(int heading) { Vector3 d = Dir3(heading); return new Vector3(d.z, 0, -d.x); }
+	public Vector3 ClampToGrid(Vector3 p)
+	{
+		float maxX = gridStart + (gridSizeX - 1) * gridStep, maxZ = gridStart + (gridSizeZ - 1) * gridStep;
+		return new Vector3(Mathf.Clamp(p.x, gridStart, maxX), 0, Mathf.Clamp(p.z, gridStart, maxZ));
+	}
+
+	public bool InsideGrid(Vector3 p)
+	{
+		float maxX = gridStart + (gridSizeX - 1) * gridStep, maxZ = gridStart + (gridSizeZ - 1) * gridStep;
+		return p.x > gridStart - 10f && p.x < maxX + 10f && p.z > gridStart - 10f && p.z < maxZ + 10f;
+	}
+
 	public bool Valid(int a, int b) { return a >= 0 && b >= 0 && a < gridSizeX && b < gridSizeZ; }
 
 	// A point in the right lane, "t" meters after crossroad (a, b), going "heading"

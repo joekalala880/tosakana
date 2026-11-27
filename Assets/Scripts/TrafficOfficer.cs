@@ -95,10 +95,21 @@ public class TrafficOfficer : MonoBehaviour
 		}
 	}
 
+	public void TakePunch(PlayerCombat by)
+	{
+		if (IsDown)
+			return;
+		downTimer = 4f;
+		Voice.Say(gameObject, Lingala.Pick(Lingala.Hit));
+		if (PoliceManager.Instance != null)
+			PoliceManager.Instance.ReportCrime(2, "You hit a roulage officer!");
+	}
+
 	void OnTriggerEnter(Collider other)
 	{
+		// Only a car that someone (you) is driving can knock him down; city traffic drives around him
 		CarController car = other.GetComponentInParent<CarController>();
-		if (car == null || Mathf.Abs(car.Speed) < 3f || IsDown)
+		if (car == null || !car.HasDriver || Mathf.Abs(car.Speed) < 3f || IsDown)
 			return;
 		downTimer = 4f;
 		Voice.Say(gameObject, Lingala.Pick(Lingala.Hit));

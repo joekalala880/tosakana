@@ -9,6 +9,7 @@ using UnityEngine;
 public class TrafficDriver : MonoBehaviour
 {
 	public bool police;
+	[HideInInspector] public bool OfficerOut;   // a police officer got out on foot: the car waits
 	public bool Chasing { get; private set; }
 
 	public int TurnsMade { get; private set; }
@@ -89,6 +90,14 @@ public class TrafficDriver : MonoBehaviour
 		Vector3 pos = transform.position;
 		float speed = Mathf.Abs(car.Speed);
 
+		if (OfficerOut)
+		{
+			car.aiThrottle = 0;
+			car.aiSteer = 0;
+			car.aiBrake = true;
+			return;
+		}
+
 		// Police close to you: drive straight at you
 		TosakanaGame game = TosakanaGame.Instance;
 		if (Chasing && game != null)
@@ -96,7 +105,11 @@ public class TrafficDriver : MonoBehaviour
 			Vector3 target = game.Focus.position;
 			Vector3 gap = target - pos;
 			gap.y = 0;
-			if (gap.magnitude < DirectChaseDistance)
+			// Close to you, or you left the streets (the airport): drive straight at you
+			// You are outside the streets (the airport): once the police reach the edge of town (or are already out), they drive straight at you
+			bool atTheEdge = !manager.InsideGrid(target) &&
+				(!manager.InsideGrid(pos) || Vector3.Distance(new Vector3(pos.x, 0, pos.z), manager.ClampToGrid(target)) < 45f);
+			if (gap.magnitude < DirectChaseDistance || atTheEdge)
 			{
 				shoutCooldown -= Time.deltaTime;
 				if (shoutCooldown <= 0)

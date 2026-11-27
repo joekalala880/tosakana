@@ -5,11 +5,12 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // Tools > Tosakana > Build City: makes the materials, the Kinshasa city, the cars, the player and the UI.
-// The city is a 7 x 6 grid of blocks with streets between them and the Fleuve Congo in the north.
+// The city is a 13 x 6 grid of blocks with streets between them, the Fleuve Congo in the north,
+// and N'djili airport in the east at the end of Boulevard Lumumba.
 // Every block belongs to a commune of Kinshasa (see Communes below).
 public static class CityBuilder
 {
-	const int BlocksX = 7;                    // west to east
+	const int BlocksX = 13;                   // west to east (Kintambo ... Kingasani)
 	const int BlocksZ = 6;                    // south to north (the river)
 	const float Pitch = 58f;                  // block + street
 	const float RoadWidth = 14f;
@@ -17,7 +18,11 @@ public static class CityBuilder
 	const float FirstBlock = -174f;           // middle of the first block (west and south)
 	const float FirstRoad = FirstBlock - Pitch / 2f;   // -203 = middle of the outside streets (west and south)
 	const float NorthRoad = FirstRoad + BlocksZ * Pitch;   // 145 = the street along the river
-	const float Inner = -FirstRoad + RoadWidth / 2f;   // 210 = edge of the city (west, east and south)
+	const float Inner = -FirstRoad + RoadWidth / 2f;   // 210 = edge of the city (west and south)
+	const float CityEast = FirstRoad + BlocksX * Pitch + RoadWidth / 2f;   // 558 = east edge of the streets
+	const float AirportStart = 560f;          // N'djili airport, east of the city
+	const float AirportEnd = 1150f;
+	const float WorldMidX = (AirportEnd - Inner) / 2f;   // 470
 	const float Boulevard = 29f;              // z of Boulevard du 30 Juin
 	const float RiverZ = 160f;
 	const int MapLayer = 31;
@@ -25,15 +30,16 @@ public static class CityBuilder
 	static readonly Vector3 TaxiStart = new Vector3(17f, 0f, -24.3f);   // parked at the curb, out of the traffic lane
 
 	// The communes of Kinshasa, one row per block row from south (Mont-Ngafula) to north (the river), west to east.
-	// Roughly where they really are: Gombe by the river, Kintambo in the west, Limete in the east, Mont-Ngafula in the hills.
+	// Roughly where they really are: Gombe by the river, Kintambo in the west, Limete, Masina and N'djili going east
+	// toward the airport, Mont-Ngafula in the hills, Kimbanseke and Kingasani in the south-east.
 	public static readonly string[] Communes =
 	{
-		"Mont-Ngafula, Mont-Ngafula, Mont-Ngafula, Mont-Ngafula, Mont-Ngafula, Mont-Ngafula, Mont-Ngafula",
-		"Selembao, Selembao, Bumbu, Kalamu, Lemba, Lemba, Lemba",
-		"Bandal, Bumbu, Kalamu, Kalamu, Matonge, Lemba, Limete",
-		"Bandal, Ngiri-Ngiri, Kalamu, Kalamu, Matonge, Matonge, Limete",
-		"Kintambo, Ngiri-Ngiri, Lingwala, Lingwala, Gombe, Gombe, Limete",
-		"Kintambo, Gombe, Gombe, Gombe, Gombe, Gombe, Limete",
+		"Mont-Ngafula, Mont-Ngafula, Mont-Ngafula, Mont-Ngafula, Mont-Ngafula, Mont-Ngafula, Mont-Ngafula, Mont-Ngafula, Kimbanseke, Kimbanseke, Kimbanseke, Kingasani, Kingasani",
+		"Selembao, Selembao, Bumbu, Kalamu, Lemba, Lemba, Lemba, Lemba, Kimbanseke, Kimbanseke, Kingasani, Kingasani, Kingasani",
+		"Bandal, Bumbu, Kalamu, Kalamu, Matonge, Lemba, Limete, Matete, Matete, Kimbanseke, Kimbanseke, Kingasani, Kingasani",
+		"Bandal, Ngiri-Ngiri, Kalamu, Kalamu, Matonge, Matonge, Limete, Matete, Matete, N'djili, N'djili, N'djili, N'djili",
+		"Kintambo, Ngiri-Ngiri, Lingwala, Lingwala, Gombe, Gombe, Limete, Limete, Matete, Masina, Masina, N'djili, N'djili",
+		"Kintambo, Gombe, Gombe, Gombe, Gombe, Gombe, Limete, Limete, Masina, Masina, Masina, Masina, N'djili",
 	};
 
 	static string CommuneOf(int i, int j) { return Communes[j].Split(',')[i].Trim(); }
@@ -77,16 +83,17 @@ public static class CityBuilder
 				BuildBlock(i, j, places);
 		BuildBoulevard();
 		BuildRiver(places);
+		BuildAirport(places);
 		BuildOutside();
 
 		// Cars
 		Transform cars = new GameObject("Cars").transform;
 		MakeCar(cars, "Taxi (yours)", TaxiStart, 90f, true, yellow);
-		ParkCars(cars, 30);
+		ParkCars(cars, 45);
 
 		// Roulage officers at busy crossroads (4 on Boulevard du 30 Juin, 1 near the Grand Marché)
 		Transform roulage = new GameObject("Roulage").transform;
-		foreach (Vector2Int n in new[] { new Vector2Int(2, 4), new Vector2Int(3, 4), new Vector2Int(4, 4), new Vector2Int(5, 4), new Vector2Int(3, 2) })
+		foreach (Vector2Int n in new[] { new Vector2Int(2, 4), new Vector2Int(3, 4), new Vector2Int(4, 4), new Vector2Int(5, 4), new Vector2Int(3, 2), new Vector2Int(9, 4) })
 			MakeOfficer(roulage, n.x, n.y);
 
 		PlayerController player = MakePlayer();
@@ -103,13 +110,13 @@ public static class CityBuilder
 		traffic.carPrefab = SavePrefab(carTemplate, "Assets/Prefabs/TrafficCar.prefab");
 		traffic.carColors = carMats;
 		traffic.taxiColor = yellow;
-		traffic.carCount = 24;
+		traffic.carCount = 36;
 		traffic.gridSizeX = BlocksX + 1;
 		traffic.gridSizeZ = BlocksZ + 1;
 		traffic.gridStart = FirstRoad;
 		PedestrianManager people = gameGo.AddComponent<PedestrianManager>();
 		people.pedestrianPrefab = SavePrefab(MakePedestrian(), "Assets/Prefabs/Pedestrian.prefab");
-		people.count = 70;
+		people.count = 110;
 		people.blocksX = BlocksX;
 		people.blocksZ = BlocksZ;
 		people.firstBlock = FirstBlock;
@@ -117,7 +124,8 @@ public static class CityBuilder
 		// Police and wanted stars (Version 3)
 		PoliceManager police = gameGo.AddComponent<PoliceManager>();
 		police.policePrefab = SavePrefab(MakePoliceCar(), "Assets/Prefabs/PoliceCar.prefab");
-		police.patrolCars = 3;
+		police.patrolCars = 4;
+		police.officerPrefab = SavePrefab(MakePoliceFoot(), "Assets/Prefabs/PoliceOfficer.prefab");
 		MiniMap map = gameGo.AddComponent<MiniMap>();
 		game.player = player;
 		game.missions = missions;
@@ -168,7 +176,7 @@ public static class CityBuilder
 
 		asphalt = Mat("Asphalt", new Color(0.36f, 0.36f, 0.38f), 0.1f);
 		asphalt.mainTexture = noise;
-		asphalt.mainTextureScale = new Vector2(120, 120);
+		asphalt.mainTextureScale = new Vector2(280, 280);
 		sidewalk = Mat("Sidewalk", new Color(0.72f, 0.7f, 0.66f), 0.1f);
 		grass = Mat("Grass", new Color(0.33f, 0.55f, 0.22f), 0.05f);
 		sand = Mat("Sand", new Color(0.78f, 0.68f, 0.5f), 0.05f);
@@ -315,7 +323,8 @@ public static class CityBuilder
 		GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
 		ground.name = "Ground (streets)";
 		ground.transform.SetParent(city);
-		ground.transform.localScale = new Vector3(120, 1, 120);   // 1200 m
+		ground.transform.localScale = new Vector3(280, 1, 280);   // 2800 m
+		ground.transform.position = new Vector3(WorldMidX, 0, -100f);
 		ground.GetComponent<Renderer>().sharedMaterial = asphalt;
 		Static(ground);
 	}
@@ -324,12 +333,12 @@ public static class CityBuilder
 	{
 		Transform roads = new GameObject("Road Lines").transform;
 		roads.SetParent(city);
-		// All lines are the same length (the parts past the edge hide under the grass, sand and water)
-		float length = 2f * Inner;
+		// (the parts past the edge hide under the grass, sand and water)
 		for (int k = 0; k <= BlocksX; k++)
-			Line(roads, new Vector3(FirstRoad + k * Pitch, 0.02f, 0), 0f, length);
+			Line(roads, new Vector3(FirstRoad + k * Pitch, 0.02f, 0), 0f, 2f * Inner);
+		float westToEast = CityEast + Inner;
 		for (int k = 0; k <= BlocksZ; k++)
-			Line(roads, new Vector3(0, 0.025f, FirstRoad + k * Pitch), 90f, length);
+			Line(roads, new Vector3((CityEast - Inner) / 2f, 0.025f, FirstRoad + k * Pitch), 90f, westToEast);
 	}
 
 	static void Line(Transform parent, Vector3 pos, float yaw, float length)
@@ -342,39 +351,56 @@ public static class CityBuilder
 		q.transform.rotation = Quaternion.Euler(90f, yaw, 0f);
 		q.transform.localScale = new Vector3(0.3f, length, 1f);
 		Renderer r = q.GetComponent<Renderer>();
-		r.sharedMaterial = dash;
+		r.sharedMaterial = DashFor(length);
 		r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 		Static(q);
+	}
+
+	// The dashes must be 6 m apart, so each line length gets its own material
+	static readonly Dictionary<int, Material> dashes = new Dictionary<int, Material>();
+	static Material DashFor(float length)
+	{
+		int key = Mathf.RoundToInt(length);
+		if (key == Mathf.RoundToInt(2f * Inner))
+			return dash;
+		Material m;
+		if (!dashes.TryGetValue(key, out m) || m == null)
+		{
+			m = new Material(dash);
+			m.mainTextureScale = new Vector2(1, length / 6f);
+			m = SaveMat(m, "RoadDash " + key);
+			dashes[key] = m;
+		}
+		return m;
 	}
 
 	static void BuildOutside()
 	{
 		Transform outside = new GameObject("Outside").transform;
 		outside.SetParent(city);
-		float inner = Inner;   // 210
-		float north = RiverZ;
-		float sideLength = north + inner + 300f;
-		float sideCenter = (north - inner - 300f) / 2f;
+		float west = -Inner, south = -Inner, east = AirportEnd, north = RiverZ;
+		float sideLength = north - south + 300f;
+		float sideCenter = (north + south - 300f) / 2f;
 		// Grass around the city (not on the river side)
-		Cube(outside, "Grass West", grass, new Vector3(-inner - 150, 0.05f, sideCenter), new Vector3(300, 0.1f, sideLength), false);
-		Cube(outside, "Grass East", grass, new Vector3(inner + 150, 0.05f, sideCenter), new Vector3(300, 0.1f, sideLength), false);
-		Cube(outside, "Grass South", grass, new Vector3(0, 0.05f, -inner - 150), new Vector3(2 * inner, 0.1f, 300), false);
+		Cube(outside, "Grass West", grass, new Vector3(west - 150, 0.05f, sideCenter), new Vector3(300, 0.1f, sideLength), false);
+		Cube(outside, "Grass East", grass, new Vector3(east + 150, 0.05f, sideCenter), new Vector3(300, 0.1f, sideLength), false);
+		Cube(outside, "Grass South", grass, new Vector3(WorldMidX, 0.05f, south - 150), new Vector3(east - west + 600, 0.1f, 300), false);
 
 		// Walls you can't see, so you stay in the city
-		float wallLength = north + inner + 20f;
-		float wallCenter = (north - inner) / 2f;
-		Wall(outside, new Vector3(-inner - 3, 3, wallCenter), new Vector3(2, 6, wallLength));
-		Wall(outside, new Vector3(inner + 3, 3, wallCenter), new Vector3(2, 6, wallLength));
-		Wall(outside, new Vector3(0, 3, -inner - 3), new Vector3(2 * inner + 8, 6, 2));
+		float wallLength = north - south + 20f;
+		float wallCenter = (north + south) / 2f;
+		Wall(outside, new Vector3(west - 3, 3, wallCenter), new Vector3(2, 6, wallLength));
+		Wall(outside, new Vector3(east + 3, 3, wallCenter), new Vector3(2, 6, wallLength));
+		Wall(outside, new Vector3(WorldMidX, 3, south - 3), new Vector3(east - west + 8, 6, 2));
 
 		// Palm trees around the city
-		for (float z = -inner + 10; z <= NorthRoad; z += 20)
+		for (float z = south + 10; z <= NorthRoad; z += 20)
 		{
-			Palm(outside, new Vector3(-inner - 8 - Range(0, 6), 0, z + Range(-4, 4)));
-			Palm(outside, new Vector3(inner + 8 + Range(0, 6), 0, z + Range(-4, 4)));
+			Palm(outside, new Vector3(west - 8 - Range(0, 6), 0, z + Range(-4, 4)));
+			Palm(outside, new Vector3(east + 8 + Range(0, 6), 0, z + Range(-4, 4)));
 		}
-		for (float x = -inner + 10; x <= inner - 10; x += 20)
-			Palm(outside, new Vector3(x + Range(-4, 4), 0, -inner - 8 - Range(0, 6)));
+		for (float x = west + 10; x <= east - 10; x += 22)
+			Palm(outside, new Vector3(x + Range(-4, 4), 0, south - 8 - Range(0, 6)));
 	}
 
 	static void Wall(Transform parent, Vector3 pos, Vector3 size)
@@ -456,6 +482,22 @@ public static class CityBuilder
 			case "Mont-Ngafula":
 				Hills(block, c);
 				break;
+			case "Masina":
+				if (rng.NextDouble() < 0.25)
+					Warehouses(block, c);
+				else
+					Lots(block, c, 5, 2.8f, 5f, houseMats, false, rust);
+				break;
+			case "Matete":
+				Lots(block, c, 4, 3.5f, 8f, rng.NextDouble() < 0.5 ? brightMats : houseMats, false);
+				break;
+			case "N'djili":
+				Lots(block, c, 3, 4f, 10f, houseMats, false);
+				break;
+			case "Kimbanseke":
+			case "Kingasani":
+				Lots(block, c, 5, 2.6f, 4.8f, rng.NextDouble() < 0.3 ? brightMats : houseMats, false, rust);
+				break;
 			default:   // Kintambo, Lingwala, Bandal, Kalamu, Lemba
 				Lots(block, c, rng.Next(2, 4), 4.5f, 8f + (i + j) * 1.6f, rng.NextDouble() < 0.4 ? brightMats : houseMats, false);
 				break;
@@ -476,6 +518,11 @@ public static class CityBuilder
 			case "174,58": CommunePlace(block, places, "Limete", c, south); break;
 			case "-58,0": CommunePlace(block, places, "Kalamu", c, north); break;
 			case "0,58": CommunePlace(block, places, "Lingwala", c, north); break;
+			case "348,116": CommunePlace(block, places, "Masina", c, south); break;
+			case "290,0": CommunePlace(block, places, "Matete", c, north); break;
+			case "406,0": CommunePlace(block, places, "N'djili", c, north); break;
+			case "348,-116": CommunePlace(block, places, "Kimbanseke", c, north); break;
+			case "522,-116": CommunePlace(block, places, "Kingasani", c, north); break;
 		}
 	}
 
@@ -641,10 +688,12 @@ public static class CityBuilder
 
 	static void BuildBoulevard()
 	{
-		float[] boulevardSigns = { -116f, 0f, 116f };   // (Bandal and Limete have their own signs here)
+		float[] boulevardSigns = { -116f, 0f, 116f };
+		float[] lumumbaSigns = { 232f, 464f };
+		float[] communeSigns = { -174f, -58f, 290f, 406f };   // commune signs stand on the boulevard here
 		Transform b = new GameObject("Boulevard du 30 Juin").transform;
 		b.SetParent(city);
-		for (float x = -196; x <= 196; x += 14)
+		for (float x = -196; x <= CityEast - 12; x += 14)
 		{
 			bool crossing = false;
 			for (int k = 0; k <= BlocksX; k++)
@@ -653,15 +702,18 @@ public static class CityBuilder
 			if (crossing)
 				continue;
 			bool nearSign = false;
-			foreach (float sx in boulevardSigns)
-				if (Mathf.Abs(x - sx) < 8f)
-					nearSign = true;
+			foreach (float[] list in new[] { boulevardSigns, lumumbaSigns, communeSigns })
+				foreach (float sx in list)
+					if (Mathf.Abs(x - sx) < 9f)
+						nearSign = true;
 			if (!nearSign)
 				Palm(b, new Vector3(x, 0, Boulevard - 8.3f));
 			Palm(b, new Vector3(x + 7, 0, Boulevard + 8.3f));
 		}
 		foreach (float x in boulevardSigns)
 			Sign(b, "Boulevard du 30 Juin", new Vector3(x, 0, Boulevard - 7.9f), 0f, signGreen);
+		foreach (float x in lumumbaSigns)
+			Sign(b, "Boulevard Lumumba", new Vector3(x, 0, Boulevard - 7.9f), 0f, signGreen);
 	}
 
 	static void BuildRiver(List<Place> places)
@@ -669,9 +721,9 @@ public static class CityBuilder
 		Transform river = new GameObject("Fleuve Congo").transform;
 		river.SetParent(city);
 		float bank = NorthRoad + RoadWidth / 2f;
-		Cube(river, "River Bank", sand, new Vector3(0, 0.04f, (bank + RiverZ) / 2f), new Vector3(1200, 0.08f, RiverZ - bank), false);
-		Cube(river, "River Wall", concrete, new Vector3(0, 0.55f, RiverZ + 0.3f), new Vector3(1200, 1.1f, 0.6f), true);
-		Cube(river, "Water", water, new Vector3(0, 0.02f, RiverZ + 500f), new Vector3(1600, 0.1f, 1000f), false);
+		Cube(river, "River Bank", sand, new Vector3(WorldMidX, 0.04f, (bank + RiverZ) / 2f), new Vector3(2800, 0.08f, RiverZ - bank), false);
+		Cube(river, "River Wall", concrete, new Vector3(WorldMidX, 0.55f, RiverZ + 0.3f), new Vector3(2800, 1.1f, 0.6f), true);
+		Cube(river, "Water", water, new Vector3(WorldMidX, 0.02f, RiverZ + 500f), new Vector3(3400, 0.1f, 1000f), false);
 
 		// Ngobila dock and pirogues
 		Cube(river, "Dock", wood, new Vector3(-58, 0.35f, RiverZ + 13f), new Vector3(8f, 0.4f, 24f), false);
@@ -685,13 +737,137 @@ public static class CityBuilder
 		Cube(river, "Ferry Cabin", signBlue, new Vector3(-35, 3.4f, RiverZ + 34f), new Vector3(7f, 2f, 8f), false);
 
 		// The other side of the river, far away
-		Cube(river, "Far Bank", farBank, new Vector3(0, 1.5f, RiverZ + 760f), new Vector3(2400, 3f, 200f), false);
-		for (int k = 0; k < 40; k++)
+		Cube(river, "Far Bank", farBank, new Vector3(WorldMidX, 1.5f, RiverZ + 760f), new Vector3(3600, 3f, 200f), false);
+		for (int k = 0; k < 60; k++)
 		{
 			float h = Range(4, 22);
-			Cube(river, "Far Building", Pick(houseMats), new Vector3(Range(-800, 800), h / 2f + 3f, RiverZ + Range(680, 760)), new Vector3(Range(8, 20), h, Range(8, 20)), false);
+			Cube(river, "Far Building", Pick(houseMats), new Vector3(Range(-900, 1800), h / 2f + 3f, RiverZ + Range(680, 760)), new Vector3(Range(8, 20), h, Range(8, 20)), false);
 		}
 		Sign(river, "FLEUVE CONGO", new Vector3(30, 0, RiverZ - 1.5f), 180f, signGreen);
+	}
+
+	// ---------- N'djili airport ----------
+	static void BuildAirport(List<Place> places)
+	{
+		Transform ap = new GameObject("Aéroport de N'djili").transform;
+		ap.SetParent(city);
+		float midX = (AirportStart + AirportEnd) / 2f;
+		Material runway = Mat("Runway", new Color(0.22f, 0.22f, 0.24f), 0.1f);
+		Cube(ap, "Airport Grass", grass, new Vector3(midX, 0.05f, (RiverZ - Inner) / 2f - 4f), new Vector3(AirportEnd - CityEast, 0.1f, RiverZ + Inner - 8f), false);
+
+		// The road from Boulevard Lumumba to the terminal
+		Cube(ap, "Airport Road", runway, new Vector3((CityEast + 720f) / 2f, 0.11f, Boulevard), new Vector3(720f - CityEast, 0.04f, RoadWidth), false);
+		Line(ap, new Vector3((CityEast + 720f) / 2f, 0.14f, Boulevard), 90f, 720f - CityEast);
+
+		// Runway with a dashed middle line and white edges
+		float rz = -95f, rx0 = 600f, rx1 = 1120f, rw = 46f;
+		Cube(ap, "Runway", runway, new Vector3((rx0 + rx1) / 2f, 0.12f, rz), new Vector3(rx1 - rx0, 0.06f, rw), false);
+		Line(ap, new Vector3((rx0 + rx1) / 2f, 0.16f, rz), 90f, rx1 - rx0 - 40f);
+		foreach (float side in new[] { -1f, 1f })
+			Cube(ap, "Runway Edge", white, new Vector3((rx0 + rx1) / 2f, 0.16f, rz + side * (rw / 2f - 1f)), new Vector3(rx1 - rx0, 0.02f, 0.6f), false);
+		foreach (float endX in new[] { rx0 + 8f, rx1 - 8f })
+			for (int k = 0; k < 8; k++)
+				Cube(ap, "Runway Stripe", white, new Vector3(endX, 0.16f, rz - 17.5f + k * 5f), new Vector3(14f, 0.02f, 1.6f), false);
+
+		// Taxiway and apron
+		Cube(ap, "Taxiway", runway, new Vector3(760f, 0.11f, (rz + 20f) / 2f), new Vector3(24f, 0.05f, 20f - rz), false);
+		Cube(ap, "Apron", Mat("Apron", new Color(0.5f, 0.5f, 0.49f), 0.1f), new Vector3(850f, 0.1f, 62f), new Vector3(320f, 0.06f, 96f), false);
+
+		// Terminal with its big name
+		Cube(ap, "Terminal", towerMats[0], new Vector3(850f, 7f, 126f), new Vector3(260f, 14f, 22f), true);
+		Cube(ap, "Terminal Roof", roofMat, new Vector3(850f, 14.3f, 126f), new Vector3(264f, 0.6f, 26f), false);
+		Cube(ap, "Terminal Canopy", white, new Vector3(850f, 5f, 112f), new Vector3(120f, 0.4f, 6f), false);
+		Cube(ap, "Name Board", signBlue, new Vector3(850f, 10.5f, 114.75f), new Vector3(96f, 5f, 0.3f), false);
+		WorldText(ap, "AÉROPORT INTERNATIONAL DE N'DJILI", new Vector3(850f, 10.5f, 114.55f), Quaternion.identity, 94f, 5f, 72, Color.white, 0.05f);
+
+		// Control tower
+		Shape(ap, PrimitiveType.Cylinder, "Control Tower", concrete, new Vector3(1040f, 18f, 122f), new Vector3(5f, 18f, 5f), Vector3.zero, true);
+		Shape(ap, PrimitiveType.Cylinder, "Tower Cab", towerMats[0], new Vector3(1040f, 37.5f, 122f), new Vector3(10f, 2.5f, 10f), Vector3.zero, false);
+		Shape(ap, PrimitiveType.Cylinder, "Tower Roof", roofMat, new Vector3(1040f, 40.3f, 122f), new Vector3(11f, 0.4f, 11f), Vector3.zero, false);
+
+		// Hangars
+		foreach (float hz in new[] { 0f, 50f })
+		{
+			Cube(ap, "Hangar", metal, new Vector3(1085f, 8f, hz), new Vector3(50f, 16f, 36f), true);
+			Cube(ap, "Hangar Door", black, new Vector3(1059.9f, 6f, hz), new Vector3(0.2f, 12f, 30f), false);
+		}
+
+		// Planes waiting at the terminal, and one that takes off again and again
+		foreach (float px in new[] { 760f, 850f, 940f })
+			MakePlane(ap, new Vector3(px, 0.13f, 78f), 180f, true);
+		GameObject flyer = MakePlane(ap, new Vector3(rx0 + 15f, 0.15f, rz), 90f, false);
+		flyer.name = "Plane (takes off)";
+		flyer.AddComponent<PlaneTakeoff>().runwayLength = rx1 - rx0 - 40f;
+
+		Sign(ap, "AÉROPORT DE N'DJILI", new Vector3(CityEast + 6f, 0, Boulevard - 8.5f), 270f, signBlue, "Bokomi malamu!  ·  Welcome!");
+		places.Add(MakePlace("Aéroport de N'djili", new Vector3(850f, 0, -20f), 320f, new Vector3(850f, 0, 38f)));
+	}
+
+	// A plane: white body with a blue and yellow stripe, wings, engines and a blue tail
+	static GameObject MakePlane(Transform parent, Vector3 pos, float yaw, bool solid)
+	{
+		GameObject plane = new GameObject("Plane");
+		plane.transform.SetParent(parent);
+		Material engineMat = metal;
+		GameObject body = Part(plane, PrimitiveType.Cylinder, white, new Vector3(0, 3.2f, 0), new Vector3(4f, 17f, 4f));
+		body.transform.localRotation = Quaternion.Euler(90, 0, 0);
+		Part(plane, PrimitiveType.Sphere, white, new Vector3(0, 3.2f, 17f), new Vector3(4f, 4f, 6f));
+		Part(plane, PrimitiveType.Sphere, white, new Vector3(0, 3.6f, -17f), new Vector3(3.6f, 3.6f, 8f));
+		Part(plane, PrimitiveType.Cube, glass, new Vector3(0, 3.9f, 1f), new Vector3(4.06f, 0.5f, 26f));
+		Part(plane, PrimitiveType.Cube, blue, new Vector3(0, 2.55f, 0), new Vector3(4.08f, 0.55f, 31f));
+		Part(plane, PrimitiveType.Cube, yellow, new Vector3(0, 2.15f, 0), new Vector3(4.1f, 0.22f, 31f));
+		Part(plane, PrimitiveType.Cube, white, new Vector3(0, 2.4f, 1f), new Vector3(34f, 0.5f, 6.5f));
+		foreach (float x in new[] { -7f, 7f })
+		{
+			GameObject engine = Part(plane, PrimitiveType.Cylinder, engineMat, new Vector3(x, 1.4f, 3f), new Vector3(1.7f, 2.2f, 1.7f));
+			engine.transform.localRotation = Quaternion.Euler(90, 0, 0);
+		}
+		Part(plane, PrimitiveType.Cube, blue, new Vector3(0, 7.5f, -15f), new Vector3(0.5f, 7f, 6f));
+		Part(plane, PrimitiveType.Cube, white, new Vector3(0, 4f, -15.5f), new Vector3(12f, 0.4f, 3.5f));
+		foreach (Vector3 w in new[] { new Vector3(0, 0.7f, 12f), new Vector3(-2.5f, 0.7f, 0), new Vector3(2.5f, 0.7f, 0) })
+		{
+			GameObject wheel = Part(plane, PrimitiveType.Cylinder, tire, w, new Vector3(1.2f, 0.25f, 1.2f));
+			wheel.transform.localRotation = Quaternion.Euler(0, 0, 90);
+		}
+		if (solid)
+		{
+			BoxCollider b1 = plane.AddComponent<BoxCollider>();
+			b1.center = new Vector3(0, 3.2f, 0);
+			b1.size = new Vector3(4f, 6.4f, 40f);
+			BoxCollider b2 = plane.AddComponent<BoxCollider>();
+			b2.center = new Vector3(0, 2.4f, 1f);
+			b2.size = new Vector3(34f, 1f, 6.5f);
+		}
+		plane.transform.SetPositionAndRotation(pos, Quaternion.Euler(0, yaw, 0));
+		return plane;
+	}
+
+	// A police officer on foot: dark blue uniform and a blue beret
+	static GameObject MakePoliceFoot()
+	{
+		Material uniform = Mat("Police Uniform", new Color(0.1f, 0.13f, 0.3f), 0.2f);
+		GameObject o = new GameObject("Police Officer");
+		o.layer = 2;
+		CapsuleCollider col = o.AddComponent<CapsuleCollider>();
+		col.isTrigger = true;
+		col.center = new Vector3(0, 0.9f, 0);
+		col.height = 1.8f;
+		col.radius = 0.35f;
+		Rigidbody rb = o.AddComponent<Rigidbody>();
+		rb.isKinematic = true;
+		rb.useGravity = false;
+		PoliceFoot cop = o.AddComponent<PoliceFoot>();
+		Part(o, PrimitiveType.Capsule, uniform, new Vector3(0, 1.2f, 0), new Vector3(0.56f, 0.42f, 0.4f));
+		Part(o, PrimitiveType.Sphere, skin, new Vector3(0, 1.72f, 0), Vector3.one * 0.32f);
+		Part(o, PrimitiveType.Sphere, sirenBlue, new Vector3(0.03f, 1.86f, -0.01f), new Vector3(0.36f, 0.12f, 0.36f));
+		Part(o, PrimitiveType.Cube, white, new Vector3(0.16f, 1.3f, 0.2f), new Vector3(0.1f, 0.1f, 0.02f));
+		foreach (float x in new[] { -0.07f, 0.07f })
+			Part(o, PrimitiveType.Sphere, black, new Vector3(x, 1.75f, 0.15f), Vector3.one * 0.045f);
+		cop.leftLeg = Limb(o, "Left Leg", new Vector3(-0.12f, 0.86f, 0), new Vector3(0.17f, 0.86f, 0.19f), uniform);
+		cop.rightLeg = Limb(o, "Right Leg", new Vector3(0.12f, 0.86f, 0), new Vector3(0.17f, 0.86f, 0.19f), uniform);
+		cop.leftArm = Limb(o, "Left Arm", new Vector3(-0.34f, 1.42f, 0), new Vector3(0.13f, 0.62f, 0.15f), uniform);
+		cop.rightArm = Limb(o, "Right Arm", new Vector3(0.34f, 1.42f, 0), new Vector3(0.13f, 0.62f, 0.15f), uniform);
+		return o;
 	}
 
 	// ---------- Palm trees and signs ----------
@@ -755,7 +931,8 @@ public static class CityBuilder
 		Static(sign.gameObject);
 	}
 
-	static void WorldText(Transform parent, string value, Vector3 localPos, Quaternion localRot, float width, float height, int fontSize, Color color)
+	// fontSize is in canvas units; "scale" is meters per unit (0.01 = 100 units per meter). Big signs use a bigger scale.
+	static void WorldText(Transform parent, string value, Vector3 localPos, Quaternion localRot, float width, float height, int fontSize, Color color, float scale = 0.01f)
 	{
 		GameObject go = new GameObject("Text", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
 		go.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
@@ -764,8 +941,8 @@ public static class CityBuilder
 		rt.SetParent(parent, false);
 		rt.localPosition = localPos;
 		rt.localRotation = localRot;
-		rt.sizeDelta = new Vector2(width * 100f, height * 100f);
-		rt.localScale = Vector3.one * 0.01f;
+		rt.sizeDelta = new Vector2(width / scale, height / scale);
+		rt.localScale = Vector3.one * scale;
 
 		GameObject t = new GameObject("Label", typeof(RectTransform), typeof(Text));
 		RectTransform trt = Stretch(t, rt);
@@ -878,6 +1055,7 @@ public static class CityBuilder
 		cc.radius = 0.35f;
 		cc.stepOffset = 0.35f;
 		PlayerController pc = p.AddComponent<PlayerController>();
+		p.AddComponent<PlayerCombat>();
 
 		Part(p, PrimitiveType.Capsule, shirt, new Vector3(0, 1.2f, 0), new Vector3(0.55f, 0.42f, 0.38f));
 		Part(p, PrimitiveType.Sphere, skin, new Vector3(0, 1.72f, 0), Vector3.one * 0.34f);
@@ -1156,6 +1334,19 @@ public static class CityBuilder
 		game.zoneText = Label(hud, "Area Name", "", 40, TextAnchor.MiddleRight, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-34, 120), new Vector2(700, 56), Color.white, FontStyle.BoldAndItalic);
 		game.speedText = Label(hud, "Speed", "", 46, TextAnchor.MiddleRight, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-34, 60), new Vector2(400, 60), new Color(0.6f, 0.85f, 1f), FontStyle.Bold);
 
+		// Health bar (above the mini-map) and a red flash when you get hit
+		RectTransform healthBack = Rect(hud, "Health Bar", new Vector2(0, 0), new Vector2(0, 0), new Vector2(40, 362), new Vector2(300, 16), new Color(0, 0, 0, 0.6f), null);
+		GameObject fillGo = new GameObject("Health Fill", typeof(RectTransform), typeof(Image));
+		RectTransform fill = Stretch(fillGo, healthBack);
+		fillGo.GetComponent<Image>().color = new Color(0.9f, 0.2f, 0.2f);
+		fillGo.GetComponent<Image>().raycastTarget = false;
+		RectTransform flash = Stretch(new GameObject("Hurt Flash", typeof(RectTransform), typeof(Image)), hud);
+		flash.GetComponent<Image>().color = new Color(0.8f, 0, 0, 0);
+		flash.GetComponent<Image>().raycastTarget = false;
+		PlayerCombat combat = game.player.GetComponent<PlayerCombat>();
+		combat.healthFill = fill;
+		combat.damageFlash = flash.GetComponent<Image>();
+
 		// Mini-map (bottom left), round
 		RectTransform frame = Rect(hud, "Mini-Map Frame", new Vector2(0, 0), new Vector2(0, 0), new Vector2(30, 30), new Vector2(320, 320), new Color(0.05f, 0.05f, 0.05f, 0.85f), knob);
 		RectTransform maskRt = Rect(frame, "Mini-Map Mask", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(300, 300), Color.white, knob);
@@ -1187,7 +1378,7 @@ public static class CityBuilder
 		Label(controls, "Controls", "W A S D  –  walk / drive          Mouse  –  look around\n" +
 			"Shift  –  run          Space  –  jump / brake\n" +
 			"E  –  get in or out of a car          H  –  horn\n" +
-			"Esc  –  free the mouse", 30, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(960, 190), Color.white, FontStyle.Normal);
+			"Left click / R  –  punch          T  –  talk          Esc  –  free the mouse", 30, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(960, 190), Color.white, FontStyle.Normal);
 
 		game.pressEnterText = Label(title, "Press Enter", "Press ENTER to start", 50, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -310), new Vector2(1000, 64), Color.white, FontStyle.Bold);
 		Label(title, "Made By", "Made by " + game.author, 32, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -400), new Vector2(1000, 44), new Color(1f, 0.95f, 0.75f), FontStyle.Italic);
