@@ -164,6 +164,17 @@ public class PoliceFoot : MonoBehaviour
 
 	void Swing(float speed)
 	{
+		Body body = GetComponent<Body>();
+		if (body != null)
+		{
+			cycle += Time.deltaTime * speed * 1.7f;
+			punchAnim -= Time.deltaTime;
+			if (punchAnim > 0)
+				body.Do(Body.Move.Cross, 1f - punchAnim / 0.25f);
+			else
+				body.Walk(cycle, Mathf.Clamp01(speed / 6f) + (speed > 0.2f ? 0.25f : 0f));
+			return;
+		}
 		cycle += Time.deltaTime * speed * 3f;
 		float swing = Mathf.Sin(cycle) * Mathf.Clamp01(speed / 3f) * 40f;
 		if (leftLeg != null) leftLeg.localRotation = Quaternion.Euler(swing, 0, 0);

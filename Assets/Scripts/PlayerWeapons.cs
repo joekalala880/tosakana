@@ -76,7 +76,11 @@ public class PlayerWeapons : MonoBehaviour
 	{
 		// Holding the pistol: arm straight out in front
 		if (PistolOut && pc.rightArm != null)
+		{
 			pc.rightArm.localRotation = Quaternion.Euler(-88f, 0, 0);
+			Body body = GetComponent<Body>();
+			if (body != null && body.rightElbow != null) body.rightElbow.localRotation = Quaternion.identity;
+		}
 	}
 
 	// Shoots where the camera looks. Returns what it hit (a person, an officer, a wall...) or null.

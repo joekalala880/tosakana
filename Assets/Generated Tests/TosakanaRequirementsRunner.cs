@@ -24,6 +24,8 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		yield return null;
 		// The police wait until the Version 3 checks, so stars from earlier tests don't get in the way
 		PoliceManager.Instance.enabled = false;
+		// No random street fights during the checks (Version 12 starts one itself)
+		if (StreetFights.Instance != null) StreetFights.Instance.enabled = false;
 
 		// ---- Title ----
 		Check("Starts on the title screen (HUD hidden)", game.CurrentState == TosakanaGame.State.Title && game.titlePanel.activeSelf && !game.hud.activeSelf);
@@ -239,7 +241,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		Check("People cross the streets (" + crossings + " crossings so far)", crossings >= 1);
 
 		// People jump out of the way of a fast car
-		Pedestrian jumper = Pedestrian.All.Find(p => !p.Crossing && !p.IsDown);
+		Pedestrian jumper = Pedestrian.All.Find(p => p.role == Pedestrian.Role.Normal && !p.hangOut && !p.cheering && !p.Crossing && !p.IsDown);
 		jumper.testHold = true;
 		ClearAround(new Vector3(-110f, 0, -87f), 30f, stopCar);
 		stopCar.Teleport(new Vector3(-132f, 0f, -87f), 90f);
@@ -252,7 +254,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		jumper.testHold = false;
 
 		// A car that hits someone knocks them down; they get back up
-		Pedestrian unlucky = Pedestrian.All.Find(p => p != jumper && !p.Crossing && !p.IsDown);
+		Pedestrian unlucky = Pedestrian.All.Find(p => p.role == Pedestrian.Role.Normal && !p.hangOut && !p.cheering && p != jumper && !p.Crossing && !p.IsDown);
 		unlucky.testHold = true;
 		unlucky.testNoDodge = true;
 		ClearAround(new Vector3(-60f, 0, -87f), 25f, stopCar);
@@ -281,7 +283,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		Check("Police cars show on the mini-map", firstLights.mapIcon.gameObject.layer == 31 && firstLights.mapIcon.gameObject.activeInHierarchy);
 
 		// Crime: hit a person with your car
-		Pedestrian victim = Pedestrian.All.Find(p => p != unlucky && !p.Crossing && !p.IsDown);
+		Pedestrian victim = Pedestrian.All.Find(p => p.role == Pedestrian.Role.Normal && !p.hangOut && !p.cheering && p != unlucky && !p.Crossing && !p.IsDown);
 		victim.testHold = true;
 		victim.testNoDodge = true;
 		ClearAround(new Vector3(-8f, 0, -87f), 25f, stopCar);
@@ -385,7 +387,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		Check("Area name at the bottom right says Lemba (" + game.zoneText.text + ")", game.zoneText.text == "Lemba");
 
 		// Talk to someone with T
-		Pedestrian friend = Pedestrian.All.Find(p => !p.IsDown && !p.Crossing && !p.carriesBasin);
+		Pedestrian friend = Pedestrian.All.Find(p => p.role == Pedestrian.Role.Normal && !p.hangOut && !p.cheering && !p.IsDown && !p.Crossing && !p.carriesBasin);
 		friend.testHold = true;
 		friend.testNoDodge = true;
 		friend.transform.position = player.transform.position + new Vector3(1.8f, 0.01f, 0.5f);
@@ -487,7 +489,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		player.Teleport(new Vector3(58f, 0.05f, -94.6f), 90f);   // Lemba sidewalk
 
 		// Punch someone who runs away
-		Pedestrian runner = Pedestrian.All.Find(p => !p.IsDown && !p.Crossing && p.CurrentMood == Pedestrian.Mood.Walk);
+		Pedestrian runner = Pedestrian.All.Find(p => p.role == Pedestrian.Role.Normal && !p.hangOut && !p.cheering && !p.IsDown && !p.Crossing && p.CurrentMood == Pedestrian.Mood.Walk);
 		runner.testHold = true;
 		runner.testNoDodge = true;
 		runner.testForceFlee = true;
@@ -506,7 +508,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		runner.testNoDodge = false;
 
 		// Punch someone who fights back
-		Pedestrian boxer = Pedestrian.All.Find(p => p != runner && !p.IsDown && !p.Crossing && p.CurrentMood == Pedestrian.Mood.Walk);
+		Pedestrian boxer = Pedestrian.All.Find(p => p.role == Pedestrian.Role.Normal && !p.hangOut && !p.cheering && p != runner && !p.IsDown && !p.Crossing && p.CurrentMood == Pedestrian.Mood.Walk);
 		boxer.testHold = true;
 		boxer.testNoDodge = true;
 		boxer.testForceFight = true;
@@ -520,8 +522,21 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		yield return new WaitForSeconds(5f);
 		Check("Some people fight back (\"" + Said(boxer.gameObject) + "\"): your health " + healthBefore + " -> " + fists.Health,
 			boxer.CurrentMood == Pedestrian.Mood.Fight && fists.Health < healthBefore && IsLine(Said(boxer.gameObject), Lingala.FightBack));
-		Component again = fists.Punch();
-		Check("You can punch back (they fall again)", again == boxer && boxer.IsDown && boxer.Punched == 2);
+		Component again = null;
+		for (int k = 0; k < 12 && !boxer.IsDown; k++)
+		{
+			boxer.transform.position = player.transform.position + player.transform.forward * 1.1f;
+			Component c = fists.Punch();
+			if (c == boxer) again = c;
+			yield return new WaitForSeconds(0.5f);
+		}
+		Check("You can punch back: a few punches and they fall again (" + boxer.Punched + " punches)", again == boxer && boxer.IsDown && boxer.Punched >= 2);
+		// (beaten people run away; this one gets up and comes back for more)
+		float upWait6 = Time.time + 5f;
+		while (boxer.IsDown && Time.time < upWait6) yield return null;
+		yield return new WaitForSeconds(0.6f);
+		boxer.HealFully();
+		boxer.AttackYou();
 		fists.SetHealth(5);
 		float koWait = Time.time + 8f;
 		while (fists.KnockOuts == 0 && Time.time < koWait)
@@ -726,8 +741,8 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		Ray aim = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
 		float tHit = aim.direction.y < -0.01f ? (aim.origin.y - 1f) / -aim.direction.y : 12f;
 		Vector3 spot2 = aim.GetPoint(tHit);
-		Pedestrian target2 = Pedestrian.All.Find(p => !p.IsDown && !p.Crossing && p.CurrentMood == Pedestrian.Mood.Walk);
-		Pedestrian bystander = Pedestrian.All.Find(p => p != target2 && !p.IsDown && !p.Crossing && p.CurrentMood == Pedestrian.Mood.Walk);
+		Pedestrian target2 = Pedestrian.All.Find(p => p.role == Pedestrian.Role.Normal && !p.hangOut && !p.cheering && !p.IsDown && !p.Crossing && p.CurrentMood == Pedestrian.Mood.Walk);
+		Pedestrian bystander = Pedestrian.All.Find(p => p.role == Pedestrian.Role.Normal && !p.hangOut && !p.cheering && p != target2 && !p.IsDown && !p.Crossing && p.CurrentMood == Pedestrian.Mood.Walk);
 		target2.testHold = true;
 		target2.testNoDodge = true;
 		ClearPeopleAround(spot2, 6f, target2);
@@ -867,11 +882,12 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		Check("DRC flags wave in the wind all over the city (" + flags.Length + " flags)", flags.Length >= 20 && Quaternion.Angle(r0, flags[0].transform.localRotation) > 0.5f);
 
 		PlayerLooks looks = player.GetComponent<PlayerLooks>();
-		Check("You start in the sapeur suit", !looks.street && FindDeep(player.transform, "Jacket").gameObject.activeSelf && !FindDeep(player.transform, "Leopards Jersey").gameObject.activeSelf);
+		Check("You start in the sapeur suit (" + looks.TopMaterial + ")", !looks.street && looks.TopMaterial == "Sapeur Jacket" && FindDeep(player.transform, "Hat").gameObject.activeSelf && !FindDeep(player.transform, "Cap").gameObject.activeSelf);
 		game.ChangeClothes();
 		yield return null;
-		Check("O = street look: Leopards jersey, jeans, sneakers, cap", looks.street && FindDeep(player.transform, "Leopards Jersey").gameObject.activeSelf && FindDeep(player.transform, "Jeans").gameObject.activeSelf &&
-			FindDeep(player.transform, "Sneaker").gameObject.activeSelf && FindDeep(player.transform, "Cap").gameObject.activeSelf && !FindDeep(player.transform, "Hat").gameObject.activeSelf);
+		Check("O = street look: Leopards jersey, jeans, sneakers, cap (" + looks.TopMaterial + ")", looks.street && looks.TopMaterial == "Leopards Blue" &&
+			FindDeep(player.transform, "Trousers").GetComponent<Renderer>().sharedMaterial.name == "Jeans" && FindDeep(player.transform, "Shoe").GetComponent<Renderer>().sharedMaterial.name == "White" &&
+			FindDeep(player.transform, "Cap").gameObject.activeSelf && !FindDeep(player.transform, "Hat").gameObject.activeSelf);
 		game.ToggleCar();
 		yield return null;
 		Check("In the car you wear the same clothes", game.InCar && game.seatedYou.GetComponent<PlayerLooks>().street);
@@ -879,6 +895,201 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		yield return null;
 		game.ChangeClothes();
 		Check("O again = back in the sapeur suit", !looks.street && FindDeep(player.transform, "Hat").gameObject.activeSelf);
+
+		// ================= Version 12: real bodies and faces, better fights, street fights, kuluna, the ring =================
+		if (game.InVehicle) game.LeaveVehicle();
+		pm.ResetWanted();
+		pm.enabled = false;
+		yield return null;
+		fists.Heal();
+		Body you = player.GetComponent<Body>();
+		Check("You have a real body: knees, elbows, shoulders, spine and head", you != null && you.leftKnee != null && you.rightKnee != null && you.leftElbow != null && you.rightElbow != null && you.spine != null && you.head != null);
+		Check("...and a real face: eyes, eyebrows, nose, lips, ears and a short beard (" + CountNamed(you.head, "Skin") + " skin parts)",
+			FindDeep(you.head, "Eye") != null && FindDeep(you.head, "Eye White") != null && FindDeep(you.head, "Brow") != null && FindDeep(you.head, "Lips") != null &&
+			FindDeep(you.head, "Beard") != null && CountNamed(you.head, "Skin") >= 6);
+		Pedestrian someone = Pedestrian.All.Find(p => p.role == Pedestrian.Role.Normal && !p.hangOut && !p.cheering && p.role == Pedestrian.Role.Normal && !p.IsDown);
+		Body theirs = someone.GetComponent<Body>();
+		Check("People in the street have real bodies and faces too", theirs != null && theirs.leftKnee != null && FindDeep(theirs.head, "Eye") != null && FindDeep(theirs.head, "Lips") != null && FindDeep(theirs.head, "Brow") != null);
+
+		player.Teleport(new Vector3(58f, 0.05f, -94.6f), 90f);
+		rig.SetYaw(90f);
+		yield return null;
+		player.testMove = new Vector2(0, 1);
+		float maxKnee = 0, maxElbow = 0;
+		for (int k = 0; k < 50; k++)
+		{
+			yield return null;
+			maxKnee = Mathf.Max(maxKnee, Quaternion.Angle(you.leftKnee.localRotation, Quaternion.identity));
+			maxElbow = Mathf.Max(maxElbow, Quaternion.Angle(you.rightElbow.localRotation, Quaternion.identity));
+		}
+		player.testMove = Vector2.zero;
+		Check("Walking: your knees and elbows bend (knee " + maxKnee.ToString("0") + "°, elbow " + maxElbow.ToString("0") + "°)", maxKnee > 20f && maxElbow > 10f);
+		yield return new WaitForSeconds(0.3f);
+
+		// Combo: jab, cross, hook
+		PedestrianManager people = PedestrianManager.Instance;
+		Pedestrian dummy = people.Spawn(player.transform.position + player.transform.forward * 1.1f, 270f);
+		dummy.SetRole(Pedestrian.Role.Fighter, "Test dummy", 200, 0, 0f, 0.01f);
+		ClearPeopleAround(player.transform.position, 5f, dummy);
+		yield return null;
+		var moves = new System.Collections.Generic.List<Body.Move>();
+		for (int k = 0; k < 3; k++)
+		{
+			dummy.transform.position = player.transform.position + player.transform.forward * 1.1f;
+			fists.Punch();
+			moves.Add(fists.LastMove);
+			yield return new WaitForSeconds(0.3f);
+		}
+		Check("Click fast = a combo: " + string.Join(", ", moves) + " (their health 200 -> " + dummy.Health + ")",
+			moves[0] == Body.Move.Jab && moves[1] == Body.Move.Cross && moves[2] == Body.Move.Hook && dummy.Health == 200 - 12 - 16 - 26);
+		Check("Their health bar shows on the screen (" + fists.foeName.text + ")", fists.foeBar.activeSelf && fists.foeName.text.Contains("Test dummy"));
+		Destroy(dummy.gameObject);
+		yield return new WaitForSeconds(0.8f);
+
+		Pedestrian dummy2 = people.Spawn(player.transform.position + player.transform.forward * 1.2f, 270f);
+		dummy2.SetRole(Pedestrian.Role.Fighter, "Test dummy 2", 50, 0, 0f, 0.01f);
+		ClearPeopleAround(player.transform.position, 5f, dummy2);
+		yield return null;
+		dummy2.transform.position = player.transform.position + player.transform.forward * 1.2f;
+		Component kicked = fists.Kick();
+		yield return null;
+		Check("G = kick: a strong kick knocks them down", kicked == dummy2 && dummy2.IsDown && fists.LastMove == Body.Move.Kick);
+		Destroy(dummy2.gameObject);
+
+		fists.Heal();
+		fists.testBlock = true;
+		yield return null;
+		int hp0 = fists.Health;
+		fists.TakeDamage(12);
+		Check("Right click / B = block: a punch hurts much less (" + (hp0 - fists.Health) + " instead of 12)", fists.Blocking && hp0 - fists.Health <= 3);
+		fists.testBlock = false;
+		yield return null;
+		Vector3 before12 = player.transform.position;
+		fists.testDodge = true;
+		yield return null;
+		hp0 = fists.Health;
+		fists.TakeDamage(12);
+		bool missed = fists.Health == hp0;
+		yield return new WaitForSeconds(0.4f);
+		Check("X = dodge: you jump to the side and the punch misses (" + Flat(player.transform.position - before12).ToString("0.0") + " m)", missed && Flat(player.transform.position - before12) > 1f);
+
+		// A fighter gets ready before punching (you can see it coming)
+		Pedestrian boxer2 = people.Spawn(player.transform.position + player.transform.forward * 1.1f, 270f);
+		boxer2.SetRole(Pedestrian.Role.Fighter, "Boxer", 100, 6, 0f, 3f);
+		ClearPeopleAround(player.transform.position, 5f, boxer2);
+		boxer2.AttackYou();
+		fists.Heal();
+		bool sawWindup = false;
+		float wait12 = Time.time + 4f;
+		while (fists.Health == fists.maxHealth && Time.time < wait12)
+		{
+			if (Quaternion.Angle(boxer2.GetComponent<Body>().rightShoulder.localRotation, Quaternion.Euler(-45f, -10f, -18f)) > 40f) sawWindup = true;
+			yield return null;
+		}
+		Check("Enemies pull their fist back before they punch, then hit you (health " + fists.Health + ")", sawWindup && fists.Health < fists.maxHealth);
+		Destroy(boxer2.gameObject);
+		fists.Heal();
+		yield return new WaitForSeconds(0.5f);
+
+		// Street fights
+		StreetFights sf = game.GetComponent<StreetFights>();
+		sf.Stop();
+		var walkers = Pedestrian.All.FindAll(p => p.role == Pedestrian.Role.Normal && p.CurrentMood == Pedestrian.Mood.Walk && !p.IsDown && !p.carriesBasin && !p.cheering);
+		Pedestrian fa = walkers[0], fb = walkers[1], fan1 = walkers[2];
+		Vector3 spotSF = player.transform.position + new Vector3(0, 0, 0);
+		player.Teleport(spotSF + new Vector3(-12f, 0, 0), 90f);
+		fa.transform.position = spotSF + new Vector3(-0.8f, 0.01f, 0);
+		fb.transform.position = spotSF + new Vector3(0.8f, 0.01f, 0);
+		fan1.transform.position = spotSF + new Vector3(0, 0.01f, 3f);
+		ClearPeopleAround(spotSF, 8f, null);
+		fa.transform.position = spotSF + new Vector3(-0.8f, 0.01f, 0);
+		fb.transform.position = spotSF + new Vector3(0.8f, 0.01f, 0);
+		fan1.transform.position = spotSF + new Vector3(0, 0.01f, 3f);
+		yield return null;
+		int startedBefore = sf.Started;
+		sf.Begin(fa, fb);
+		yield return new WaitForSeconds(1f);
+		Check("Street fight: two people start fighting each other (\"" + game.bigText.text + "\")", sf.Started == startedBefore + 1 && fa.FoePerson == fb && fb.FoePerson == fa && game.bigText.text == "STREET FIGHT!");
+		Check("People stop and watch the fight (" + sf.Watchers.Count + " watching)", sf.Watchers.Count >= 1 && sf.Watchers.TrueForAll(w => w.cheering));
+		float sfWait = Time.time + 15f;
+		while (fa.HitsTaken + fb.HitsTaken < 2 && Time.time < sfWait)
+			yield return null;
+		Check("They really hit each other (" + (fa.HitsTaken + fb.HitsTaken) + " hits)", fa.HitsTaken + fb.HitsTaken >= 2);
+		Pedestrian joinTarget = !fa.IsDown ? fa : fb;
+		float joinWait = Time.time + 4f;
+		while (joinTarget.IsDown && Time.time < joinWait) yield return null;
+		player.Teleport(joinTarget.transform.position - Vector3.right * 1.1f, 90f);
+		ClearPeopleAround(player.transform.position, 3f, joinTarget);
+		yield return null;
+		joinTarget.transform.position = player.transform.position + player.transform.forward * 1.1f;
+		fists.Punch();
+		yield return null;
+		Check("Join in: hit one of them and they fight you instead", joinTarget.FoePerson == null && (joinTarget.FightingYou || joinTarget.IsDown));
+		sf.Stop();
+		foreach (Pedestrian p in new[] { fa, fb, fan1 }) if (p != null) p.CalmDown();
+		pm.ResetWanted();
+		fists.Heal();
+		yield return new WaitForSeconds(0.5f);
+
+		// Kuluna
+		Kuluna gangs = game.GetComponent<Kuluna>();
+		Check("Kuluna gangs wait at a corner in " + gangs.Gangs.Count + " communes (3 each, red dots on the map)",
+			gangs.Gangs.Count == 3 && gangs.Gangs.TrueForAll(g => g.members.Count == 3 && g.members.TrueForAll(m => m.hangOut && m.role == Pedestrian.Role.Kuluna)));
+		Kuluna.Gang gang = gangs.Gangs[0];
+		Check("Kuluna look different: tank tops and red bandanas", FindDeep(gang.members[0].transform, "Bandana").gameObject.activeSelf);
+		player.Teleport(gang.spot + new Vector3(10f, 0.05f, 0), 270f);
+		float angryWait = Time.time + 3f;
+		while (!gang.angry && Time.time < angryWait) yield return null;
+		yield return null;
+		Check("Walk close: the kuluna attack you all together (\"" + game.bigText.text + "\")", gang.angry && gang.members.TrueForAll(m => m.FightingYou) && game.bigText.text == "KULUNA!");
+		int money12 = game.Money;
+		int punches12 = 0;
+		float gangWait = Time.time + 90f;
+		while (!gang.beaten && Time.time < gangWait)
+		{
+			fists.Heal();
+			Pedestrian t = gang.members.Find(m => !m.Defeated && !m.IsDown);
+			if (t == null) { yield return null; continue; }
+			ClearPeopleAround(player.transform.position, 3f, t);
+			foreach (Pedestrian other in gang.members) if (other != t && !other.IsDown) other.transform.position = player.transform.position - player.transform.forward * 2.5f + Vector3.right * 0.5f;
+			t.transform.position = player.transform.position + player.transform.forward * 1.1f;
+			fists.Punch();
+			punches12++;
+			yield return new WaitForSeconds(0.32f);
+		}
+		Check("Beat all 3 kuluna (" + punches12 + " punches): +$" + (game.Money - money12) + ", and no police stars", gang.beaten && game.Money - money12 == gangs.reward && pm.Stars == 0 && gangs.Beaten == 1);
+		yield return new WaitForSeconds(0.5f);
+
+		// The fight ring
+		FightClub club = game.GetComponent<FightClub>();
+		pm.ResetWanted();
+		fists.Heal();
+		player.Teleport(club.ringCenter + new Vector3(-1.5f, 0.1f, 0), 90f);
+		float ringWait = Time.time + 3f;
+		while (club.CurrentState != FightClub.State.Countdown && Time.time < ringWait) yield return null;
+		Check("Walk into the ring at Place du 30 Juin: a fighter comes (" + (club.Opponent != null ? club.Opponent.displayName : "none") + ", $" + club.Prize + ") and people watch",
+			club.CurrentState == FightClub.State.Countdown && club.Opponent != null && club.Crowd.Count == 6 && club.Crowd.TrueForAll(c => c.cheering));
+		float bellWait = Time.time + 4f;
+		while (club.CurrentState != FightClub.State.Fighting && Time.time < bellWait) yield return null;
+		yield return null;
+		Check("3, 2, 1, BETA! The fighter comes for you", club.CurrentState == FightClub.State.Fighting && club.Opponent.FightingYou);
+		int moneyRing = game.Money;
+		int prize = club.Prize;
+		float fightWait = Time.time + 60f;
+		while (club.Wins == 0 && club.CurrentState == FightClub.State.Fighting && Time.time < fightWait)
+		{
+			fists.Heal();
+			if (club.Opponent != null && !club.Opponent.IsDown)
+			{
+				Vector3 op = player.transform.position + player.transform.forward * 1.1f;
+				club.Opponent.transform.position = new Vector3(op.x, club.Opponent.transform.position.y, op.z);
+				fists.Punch();
+			}
+			yield return new WaitForSeconds(0.32f);
+		}
+		Check("Win the ring fight: +$" + (game.Money - moneyRing) + ", next time a stronger fighter for $" + club.Prize,
+			club.Wins == 1 && game.Money - moneyRing == prize && club.Level == 1 && club.Prize == 600 && game.bigText.text == "YOU WIN!");
+		player.Teleport(new Vector3(8f, 0.05f, -22.6f), 90f);
 
 		Debug.Log("TOSAKANA-CHECK DONE: " + passed + " passed, " + failed + " failed");
 	}
@@ -956,6 +1167,14 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 	}
 
 	static float Flat(Vector3 v) { v.y = 0; return v.magnitude; }
+
+	static int CountNamed(Transform root, string name)
+	{
+		int n = 0;
+		foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+			if (t.name == name) n++;
+		return n;
+	}
 
 	static bool HasText(GameObject root, string value)
 	{

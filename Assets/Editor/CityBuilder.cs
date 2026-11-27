@@ -8,7 +8,7 @@ using UnityEngine.UI;
 // The city is a 13 x 6 grid of blocks with streets between them, the Fleuve Congo in the north,
 // and N'djili airport in the east at the end of Boulevard Lumumba.
 // Every block belongs to a commune of Kinshasa (see Communes below).
-public static class CityBuilder
+public static partial class CityBuilder
 {
 	const int BlocksX = 13;                   // west to east (Kintambo ... Kingasani)
 	const int BlocksZ = 6;                    // south to north (the river)
@@ -163,6 +163,11 @@ public static class CityBuilder
 		Flags();
 		gameGo.AddComponent<CarRadio>();
 
+		// Version 12: street fights, kuluna (gangs) and the fight ring
+		gameGo.AddComponent<StreetFights>();
+		KulunaSpots(gameGo, places);
+		FightRing(gameGo);
+
 		MakeMarker(missions);
 		MakeTargetArrow(gameGo);
 		RenderTexture mapTexture = MakeMiniMap(map);
@@ -209,6 +214,7 @@ public static class CityBuilder
 		leopardsBlue = Mat("Leopards Blue", new Color(0.0f, 0.55f, 0.95f), 0.3f);
 		jeans = Mat("Jeans", new Color(0.18f, 0.28f, 0.5f), 0.15f);
 		lampGlow = Unlit("Lamp Glow", new Color(0.55f, 0.52f, 0.45f));
+		PeopleMaterials();
 		metal = Mat("Metal", new Color(0.55f, 0.62f, 0.68f), 0.4f);
 		darkMetal = Mat("DarkMetal", new Color(0.28f, 0.33f, 0.4f), 0.3f);
 		trunk = Mat("PalmTrunk", new Color(0.5f, 0.38f, 0.25f), 0.1f);
@@ -956,16 +962,14 @@ public static class CityBuilder
 		rb.isKinematic = true;
 		rb.useGravity = false;
 		PoliceFoot cop = o.AddComponent<PoliceFoot>();
-		Part(o, PrimitiveType.Capsule, uniform, new Vector3(0, 1.2f, 0), new Vector3(0.56f, 0.42f, 0.4f));
-		Part(o, PrimitiveType.Sphere, skin, new Vector3(0, 1.72f, 0), Vector3.one * 0.32f);
-		Part(o, PrimitiveType.Sphere, sirenBlue, new Vector3(0.03f, 1.86f, -0.01f), new Vector3(0.36f, 0.12f, 0.36f));
-		Part(o, PrimitiveType.Cube, white, new Vector3(0.16f, 1.3f, 0.2f), new Vector3(0.1f, 0.1f, 0.02f));
-		foreach (float x in new[] { -0.07f, 0.07f })
-			Part(o, PrimitiveType.Sphere, black, new Vector3(x, 1.75f, 0.15f), Vector3.one * 0.045f);
-		cop.leftLeg = Limb(o, "Left Leg", new Vector3(-0.12f, 0.86f, 0), new Vector3(0.17f, 0.86f, 0.19f), uniform);
-		cop.rightLeg = Limb(o, "Right Leg", new Vector3(0.12f, 0.86f, 0), new Vector3(0.17f, 0.86f, 0.19f), uniform);
-		cop.leftArm = Limb(o, "Left Arm", new Vector3(-0.34f, 1.42f, 0), new Vector3(0.13f, 0.62f, 0.15f), uniform);
-		cop.rightArm = Limb(o, "Right Arm", new Vector3(0.34f, 1.42f, 0), new Vector3(0.13f, 0.62f, 0.15f), uniform);
+		Human h = MakeHuman(o, uniform, uniform, shoeMat, skin, hair, false, true);
+		Part(h.body.head.gameObject, PrimitiveType.Sphere, sirenBlue, new Vector3(0, 0.235f, -0.01f), new Vector3(0.27f, 0.12f, 0.28f)).name = "Police Cap";
+		Part(h.body.head.gameObject, PrimitiveType.Cube, sirenBlue, new Vector3(0, 0.22f, 0.15f), new Vector3(0.18f, 0.02f, 0.1f)).name = "Cap Peak";
+		Part(h.body.spine.gameObject, PrimitiveType.Cube, white, new Vector3(0.1f, 0.34f, 0.125f), new Vector3(0.08f, 0.08f, 0.02f)).name = "Badge";
+		cop.leftLeg = h.body.leftHip;
+		cop.rightLeg = h.body.rightHip;
+		cop.leftArm = h.body.leftShoulder;
+		cop.rightArm = h.body.rightShoulder;
 		return o;
 	}
 
@@ -1189,54 +1193,48 @@ public static class CityBuilder
 		Material hat = Mat("Sapeur Hat", new Color(0.96f, 0.92f, 0.8f), 0.3f);
 		Material gold = Mat("Gold", new Color(1f, 0.78f, 0.2f), 0.9f);
 		Material shoes = Mat("Shoes", new Color(0.35f, 0.18f, 0.08f), 0.8f);
+		// Version 12: a real body (knees, elbows) and a real face (eyes, brows, nose, lips, ears, short beard)
+		Human h = MakeHuman(p, jacket, trousers, shoes, skin, hair, true, true, "Jacket", "Trousers", "Shoe");
+		Body b = h.body;
+		pc.leftLeg = b.leftHip;
+		pc.rightLeg = b.rightHip;
+		pc.leftArm = b.leftShoulder;
+		pc.rightArm = b.rightShoulder;
+		GameObject chest = b.spine.gameObject, head = b.head.gameObject;
 		List<GameObject> sap = new List<GameObject>(), str = new List<GameObject>();
-		sap.Add(Named(Part(p, PrimitiveType.Capsule, jacket, new Vector3(0, 1.2f, 0), new Vector3(0.56f, 0.42f, 0.4f)), "Jacket"));
-		sap.Add(Named(Part(p, PrimitiveType.Cube, white, new Vector3(0, 1.36f, 0.16f), new Vector3(0.16f, 0.26f, 0.06f)), "Shirt"));
-		sap.Add(Named(Part(p, PrimitiveType.Cube, yellow, new Vector3(0, 1.3f, 0.2f), new Vector3(0.06f, 0.3f, 0.03f)), "Tie"));
-		sap.Add(Named(Part(p, PrimitiveType.Cube, gold, new Vector3(0, 1.47f, 0.17f), new Vector3(0.26f, 0.03f, 0.04f)), "Gold Chain"));
-		Part(p, PrimitiveType.Sphere, skin, new Vector3(0, 1.72f, 0), Vector3.one * 0.34f);
-		sap.Add(Named(Part(p, PrimitiveType.Cube, black, new Vector3(0, 1.76f, 0.15f), new Vector3(0.28f, 0.07f, 0.05f)), "Sunglasses"));
-		sap.Add(Named(Part(p, PrimitiveType.Cylinder, hat, new Vector3(0, 1.88f, 0), new Vector3(0.52f, 0.015f, 0.52f)), "Hat Brim"));
-		sap.Add(Named(Part(p, PrimitiveType.Cylinder, hat, new Vector3(0, 1.97f, 0), new Vector3(0.3f, 0.09f, 0.3f)), "Hat"));
-		sap.Add(Named(Part(p, PrimitiveType.Cylinder, black, new Vector3(0, 1.92f, 0), new Vector3(0.31f, 0.025f, 0.31f)), "Hat Band"));
+		sap.Add(Named(Part(chest, PrimitiveType.Cube, white, new Vector3(0, 0.38f, 0.112f), new Vector3(0.13f, 0.2f, 0.04f)), "Shirt"));
+		sap.Add(Named(Part(chest, PrimitiveType.Cube, yellow, new Vector3(0, 0.33f, 0.133f), new Vector3(0.05f, 0.24f, 0.02f)), "Tie"));
+		sap.Add(Named(Part(chest, PrimitiveType.Cube, gold, new Vector3(0, 0.455f, 0.118f), new Vector3(0.22f, 0.025f, 0.04f)), "Gold Chain"));
+		sap.Add(Named(Part(head, PrimitiveType.Cube, black, new Vector3(0, 0.175f, 0.122f), new Vector3(0.2f, 0.045f, 0.03f)), "Sunglasses"));
+		sap.Add(Named(Part(head, PrimitiveType.Cylinder, hat, new Vector3(0, 0.27f, 0), new Vector3(0.4f, 0.012f, 0.4f)), "Hat Brim"));
+		sap.Add(Named(Part(head, PrimitiveType.Cylinder, hat, new Vector3(0, 0.33f, 0), new Vector3(0.25f, 0.07f, 0.25f)), "Hat"));
+		sap.Add(Named(Part(head, PrimitiveType.Cylinder, black, new Vector3(0, 0.29f, 0), new Vector3(0.255f, 0.02f, 0.255f)), "Hat Band"));
 		// The street look: Leopards (DRC national team) jersey, jeans, white sneakers, a red cap
-		str.Add(Named(Part(p, PrimitiveType.Capsule, leopardsBlue, new Vector3(0, 1.2f, 0), new Vector3(0.55f, 0.42f, 0.39f)), "Leopards Jersey"));
-		GameObject band = Part(p, PrimitiveType.Cube, red, new Vector3(0, 1.22f, 0.19f), new Vector3(0.5f, 0.09f, 0.02f));
+		GameObject band = Part(chest, PrimitiveType.Cube, red, new Vector3(0, 0.3f, 0.124f), new Vector3(0.42f, 0.07f, 0.02f));
 		band.transform.localRotation = Quaternion.Euler(0, 0, 30f);
 		str.Add(Named(band, "Jersey Stripe"));
-		str.Add(Named(Part(p, PrimitiveType.Cube, yellow, new Vector3(0, 1.32f, 0.195f), new Vector3(0.09f, 0.09f, 0.02f)), "Jersey Star"));
-		str.Add(Named(Part(p, PrimitiveType.Sphere, red, new Vector3(0, 1.83f, -0.01f), new Vector3(0.36f, 0.17f, 0.36f)), "Cap"));
-		str.Add(Named(Part(p, PrimitiveType.Cube, red, new Vector3(0, 1.82f, 0.2f), new Vector3(0.22f, 0.025f, 0.16f)), "Cap Peak"));
-
-		pc.leftLeg = Limb(p, "Left Leg", new Vector3(-0.13f, 0.88f, 0), new Vector3(0.18f, 0.88f, 0.2f), trousers);
-		pc.rightLeg = Limb(p, "Right Leg", new Vector3(0.13f, 0.88f, 0), new Vector3(0.18f, 0.88f, 0.2f), trousers);
-		foreach (Transform leg in new[] { pc.leftLeg, pc.rightLeg })
-		{
-			sap.Add(leg.GetChild(0).gameObject);
-			sap.Add(Named(Part(leg.gameObject, PrimitiveType.Cube, shoes, new Vector3(0, -0.84f, 0.06f), new Vector3(0.2f, 0.09f, 0.32f)), "Shoe"));
-			str.Add(Named(Part(leg.gameObject, PrimitiveType.Cube, jeans, new Vector3(0, -0.44f, 0), new Vector3(0.19f, 0.88f, 0.21f)), "Jeans"));
-			str.Add(Named(Part(leg.gameObject, PrimitiveType.Cube, white, new Vector3(0, -0.84f, 0.06f), new Vector3(0.21f, 0.1f, 0.32f)), "Sneaker"));
-		}
-		pc.leftArm = Limb(p, "Left Arm", new Vector3(-0.36f, 1.45f, 0), new Vector3(0.14f, 0.62f, 0.16f), jacket);
-		pc.rightArm = Limb(p, "Right Arm", new Vector3(0.36f, 1.45f, 0), new Vector3(0.14f, 0.62f, 0.16f), jacket);
-		foreach (Transform arm in new[] { pc.leftArm, pc.rightArm })
-		{
-			sap.Add(arm.GetChild(0).gameObject);
-			str.Add(Named(Part(arm.gameObject, PrimitiveType.Cube, skin, new Vector3(0, -0.31f, 0), new Vector3(0.12f, 0.62f, 0.14f)), "Bare Arm"));
-			str.Add(Named(Part(arm.gameObject, PrimitiveType.Cube, leopardsBlue, new Vector3(0, -0.08f, 0), new Vector3(0.15f, 0.18f, 0.17f)), "Jersey Sleeve"));
-		}
+		str.Add(Named(Part(chest, PrimitiveType.Cube, yellow, new Vector3(0, 0.4f, 0.126f), new Vector3(0.07f, 0.07f, 0.02f)), "Jersey Star"));
+		str.Add(Named(Part(head, PrimitiveType.Sphere, red, new Vector3(0, 0.235f, -0.01f), new Vector3(0.258f, 0.13f, 0.272f)), "Cap"));
+		str.Add(Named(Part(head, PrimitiveType.Cube, red, new Vector3(0, 0.222f, 0.15f), new Vector3(0.17f, 0.02f, 0.12f)), "Cap Peak"));
 		PlayerLooks looks = p.AddComponent<PlayerLooks>();
 		looks.sapeurParts = sap.ToArray();
 		looks.streetParts = str.ToArray();
-		foreach (Transform arm in new[] { pc.leftArm, pc.rightArm })
-			Part(arm.gameObject, PrimitiveType.Sphere, skin, new Vector3(0, -0.66f, 0), Vector3.one * 0.13f).name = "Hand";
-		Part(pc.leftArm.gameObject, PrimitiveType.Cube, gold, new Vector3(0, -0.58f, 0), new Vector3(0.16f, 0.05f, 0.18f)).name = "Gold Watch";
+		List<Renderer> swap = new List<Renderer>();
+		List<Material> sapMats = new List<Material>(), strMats = new List<Material>();
+		foreach (Renderer r in h.top) { swap.Add(r); sapMats.Add(jacket); strMats.Add(leopardsBlue); }
+		foreach (Renderer r in h.forearms) { swap.Add(r); sapMats.Add(jacket); strMats.Add(skin); }
+		foreach (Renderer r in h.legs) { swap.Add(r); sapMats.Add(trousers); strMats.Add(jeans); }
+		foreach (Renderer r in h.feet) { swap.Add(r); sapMats.Add(shoes); strMats.Add(white); }
+		looks.swap = swap.ToArray();
+		looks.sapeurMats = sapMats.ToArray();
+		looks.streetMats = strMats.ToArray();
+		Part(b.leftElbow.gameObject, PrimitiveType.Cube, gold, new Vector3(0, -0.235f, 0), new Vector3(0.11f, 0.04f, 0.11f)).name = "Gold Watch";
 
 		// The pistol in the right hand (hidden until you press Q)
 		PlayerWeapons weapons = p.AddComponent<PlayerWeapons>();
 		GameObject pistol = new GameObject("Pistol");
-		pistol.transform.SetParent(pc.rightArm, false);
-		pistol.transform.localPosition = new Vector3(0, -0.7f, 0.02f);
+		pistol.transform.SetParent(b.rightElbow, false);
+		pistol.transform.localPosition = new Vector3(0, -0.36f, 0.02f);
 		Part(pistol, PrimitiveType.Cube, black, new Vector3(0, -0.06f, 0), new Vector3(0.05f, 0.24f, 0.08f));
 		Part(pistol, PrimitiveType.Cube, black, new Vector3(0, 0.02f, -0.07f), new Vector3(0.05f, 0.08f, 0.14f));
 		GameObject flash = Part(pistol, PrimitiveType.Sphere, Unlit("Muzzle Flash", new Color(1f, 0.85f, 0.3f)), new Vector3(0, -0.24f, 0), Vector3.one * 0.18f);
@@ -1304,21 +1302,20 @@ public static class CityBuilder
 		rb.useGravity = false;
 		Pedestrian ped = p.AddComponent<Pedestrian>();
 
-		Part(p, PrimitiveType.Capsule, shirt, new Vector3(0, 1.2f, 0), new Vector3(0.5f, 0.4f, 0.36f)).name = "Shirt";
-		Part(p, PrimitiveType.Sphere, skin, new Vector3(0, 1.72f, 0), Vector3.one * 0.32f).name = "Skin";
-		Part(p, PrimitiveType.Sphere, hair, new Vector3(0, 1.81f, -0.02f), new Vector3(0.31f, 0.17f, 0.31f)).name = "Hair";
-		Part(p, PrimitiveType.Sphere, shirt, new Vector3(0, 1.84f, -0.01f), new Vector3(0.38f, 0.24f, 0.38f)).name = "Scarf";
+		// Version 12: a real body and face. PedestrianManager gives everyone their own clothes, skin and hair.
+		Human h = MakeHuman(p, shirt, pants, shoeMat, skin, hair, true, false);
+		foreach (GameObject g in h.beard) g.SetActive(false);
+		ped.leftLeg = h.body.leftHip;
+		ped.rightLeg = h.body.rightHip;
+		ped.leftArm = h.body.leftShoulder;
+		ped.rightArm = h.body.rightShoulder;
+		GameObject head = h.body.head.gameObject;
+		Part(head, PrimitiveType.Sphere, shirt, new Vector3(0, 0.25f, -0.01f), new Vector3(0.29f, 0.2f, 0.3f)).name = "Scarf";
+		Part(head, PrimitiveType.Sphere, sirenRed, new Vector3(0, 0.22f, -0.01f), new Vector3(0.258f, 0.12f, 0.272f)).name = "Bandana";
 		Part(p, PrimitiveType.Cylinder, shirt, new Vector3(0, 0.62f, 0), new Vector3(0.46f, 0.36f, 0.4f)).name = "Wrap";
-		Part(p, PrimitiveType.Cylinder, metal, new Vector3(0, 2.02f, 0), new Vector3(0.75f, 0.05f, 0.75f)).name = "Basin";
+		Part(p, PrimitiveType.Cylinder, metal, new Vector3(0, 2.0f, 0), new Vector3(0.75f, 0.05f, 0.75f)).name = "Basin";
 		for (int k = 0; k < 3; k++)
-			Part(p, PrimitiveType.Sphere, fruitMats[k], new Vector3(-0.15f + k * 0.15f, 2.12f, (k % 2) * 0.1f - 0.05f), Vector3.one * 0.16f).name = "Goods";
-		foreach (float x in new[] { -0.07f, 0.07f })
-			Part(p, PrimitiveType.Sphere, black, new Vector3(x, 1.75f, 0.15f), Vector3.one * 0.045f).name = "Eye";
-
-		ped.leftLeg = Limb(p, "Left Leg", new Vector3(-0.12f, 0.86f, 0), new Vector3(0.17f, 0.86f, 0.19f), pants, "Pants");
-		ped.rightLeg = Limb(p, "Right Leg", new Vector3(0.12f, 0.86f, 0), new Vector3(0.17f, 0.86f, 0.19f), pants, "Pants");
-		ped.leftArm = Limb(p, "Left Arm", new Vector3(-0.33f, 1.42f, 0), new Vector3(0.12f, 0.62f, 0.14f), skin, "Skin");
-		ped.rightArm = Limb(p, "Right Arm", new Vector3(0.33f, 1.42f, 0), new Vector3(0.12f, 0.62f, 0.14f), skin, "Skin");
+			Part(p, PrimitiveType.Sphere, fruitMats[k], new Vector3(-0.15f + k * 0.15f, 2.1f, (k % 2) * 0.1f - 0.05f), Vector3.one * 0.16f).name = "Goods";
 		return p;
 	}
 
@@ -1382,19 +1379,14 @@ public static class CityBuilder
 		officer.nodeA = a;
 		officer.nodeB = b;
 
-		Part(o, PrimitiveType.Capsule, uniform, new Vector3(0, 1.2f, 0), new Vector3(0.55f, 0.42f, 0.38f));
-		Part(o, PrimitiveType.Cube, vest, new Vector3(0, 1.22f, 0), new Vector3(0.58f, 0.5f, 0.42f));
-		Part(o, PrimitiveType.Sphere, skin, new Vector3(0, 1.72f, 0), Vector3.one * 0.32f);
-		Part(o, PrimitiveType.Cylinder, white, new Vector3(0, 1.88f, 0), new Vector3(0.36f, 0.06f, 0.36f));
-		Part(o, PrimitiveType.Cube, black, new Vector3(0, 1.84f, 0.18f), new Vector3(0.3f, 0.03f, 0.14f));
-		foreach (float x in new[] { -0.07f, 0.07f })
-			Part(o, PrimitiveType.Sphere, black, new Vector3(x, 1.75f, 0.15f), Vector3.one * 0.045f);
-		Limb(o, "Left Leg", new Vector3(-0.12f, 0.86f, 0), new Vector3(0.17f, 0.86f, 0.19f), uniform);
-		Limb(o, "Right Leg", new Vector3(0.12f, 0.86f, 0), new Vector3(0.17f, 0.86f, 0.19f), uniform);
-		officer.leftArm = Limb(o, "Left Arm", new Vector3(-0.34f, 1.42f, 0), new Vector3(0.13f, 0.62f, 0.15f), uniform);
-		officer.rightArm = Limb(o, "Right Arm", new Vector3(0.34f, 1.42f, 0), new Vector3(0.13f, 0.62f, 0.15f), uniform);
-		foreach (Transform arm in new[] { officer.leftArm, officer.rightArm })
-			Part(arm.gameObject, PrimitiveType.Sphere, white, new Vector3(0, -0.66f, 0), Vector3.one * 0.15f).name = "Glove";
+		Human h = MakeHuman(o, uniform, uniform, shoeMat, skin, hair, false, true);
+		Part(h.body.spine.gameObject, PrimitiveType.Cube, vest, new Vector3(0, 0.27f, 0), new Vector3(0.46f, 0.44f, 0.29f)).name = "Vest";
+		Part(h.body.head.gameObject, PrimitiveType.Cylinder, white, new Vector3(0, 0.29f, 0), new Vector3(0.28f, 0.05f, 0.28f)).name = "Helmet";
+		Part(h.body.head.gameObject, PrimitiveType.Cube, black, new Vector3(0, 0.25f, 0.15f), new Vector3(0.22f, 0.02f, 0.1f)).name = "Visor";
+		officer.leftArm = h.body.leftShoulder;
+		officer.rightArm = h.body.rightShoulder;
+		foreach (Transform elbow in new[] { h.body.leftElbow, h.body.rightElbow })
+			Part(elbow.gameObject, PrimitiveType.Sphere, white, new Vector3(0, -0.3f, 0.01f), Vector3.one * 0.11f).name = "Glove";
 	}
 
 	static GameObject Named(GameObject go, string name) { go.name = name; return go; }
@@ -1610,6 +1602,18 @@ public static class CityBuilder
 		combat.healthFill = fill;
 		combat.damageFlash = flash.GetComponent<Image>();
 
+		// Version 12: the health bar of who you fight (top middle) and the name of your move (JAB, CROSS, HOOK!, KICK!)
+		RectTransform foeBack = Rect(hud, "Foe Bar", new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -400), new Vector2(520, 22), new Color(0, 0, 0, 0.65f), null);
+		GameObject foeFillGo = new GameObject("Foe Fill", typeof(RectTransform), typeof(Image));
+		RectTransform foeFill = Stretch(foeFillGo, foeBack);
+		foeFillGo.GetComponent<Image>().color = new Color(1f, 0.55f, 0.1f);
+		foeFillGo.GetComponent<Image>().raycastTarget = false;
+		combat.foeName = Label(foeBack, "Foe Name", "", 24, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0.5f, 0), new Vector2(0, 4), new Vector2(700, 30), Color.white, FontStyle.Bold);
+		combat.foeFill = foeFill;
+		combat.foeBar = foeBack.gameObject;
+		foeBack.gameObject.SetActive(false);
+		combat.moveText = Label(hud, "Move", "", 44, TextAnchor.MiddleCenter, new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(0, 250), new Vector2(600, 56), new Color(1f, 0.9f, 0.3f, 0f), FontStyle.BoldAndItalic);
+
 		// Mini-map (bottom left), round
 		RectTransform frame = Rect(hud, "Mini-Map Frame", new Vector2(0, 0), new Vector2(0, 0), new Vector2(30, 30), new Vector2(320, 320), new Color(0.05f, 0.05f, 0.05f, 0.85f), knob);
 		RectTransform maskRt = Rect(frame, "Mini-Map Mask", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(300, 300), Color.white, knob);
@@ -1637,12 +1641,13 @@ public static class CityBuilder
 		Label(title, "Subtitle", "Kinshasa Streets", 56, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 70), new Vector2(1400, 70), Color.white, FontStyle.Bold);
 		Label(title, "Lingala", "\"Tosakana\" means \"let's play\" in Lingala", 30, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 15), new Vector2(1400, 40), new Color(1f, 0.95f, 0.8f), FontStyle.Italic);
 
-		RectTransform controls = Rect(title, "Controls Box", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -130), new Vector2(980, 200), new Color(0, 0, 0, 0.55f), null);
+		RectTransform controls = Rect(title, "Controls Box", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -140), new Vector2(1180, 230), new Color(0, 0, 0, 0.55f), null);
 		Label(controls, "Controls", "W A S D  –  walk / drive          Mouse  –  look around\n" +
 			"Shift  –  run          Space  –  jump / brake\n" +
 			"E  –  get in or out of a car          H  –  horn\n" +
-			"Left click / R  –  punch or shoot      Q  –  fists / pistol      T  –  talk\n" +
-			"V  –  inside the car      N  –  radio station      O  –  clothes      M  –  mission card      Esc  –  free the mouse", 26, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(960, 190), Color.white, FontStyle.Normal);
+			"Left click / R  –  punch (click fast: jab, cross, hook)      G  –  kick      Right click / B  –  block      X  –  dodge\n" +
+			"Q  –  fists / pistol      T  –  talk      V  –  inside the car      N  –  radio station      O  –  clothes\n" +
+			"M  –  mission card      Esc  –  free the mouse", 25, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1160, 220), Color.white, FontStyle.Normal);
 
 		game.pressEnterText = Label(title, "Press Enter", "Press ENTER to start", 50, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -310), new Vector2(1000, 64), Color.white, FontStyle.Bold);
 		Label(title, "Made By", "Made by " + game.author, 32, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -400), new Vector2(1000, 44), new Color(1f, 0.95f, 0.75f), FontStyle.Italic);

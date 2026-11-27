@@ -41,7 +41,10 @@ before time runs out. Every job pays money.
 | E | get in or out of a car |
 | H | horn |
 | T | talk to someone (in Lingala) |
-| Left click / R | punch (or shoot with the pistol) |
+| Left click / R | punch (click fast for a combo: jab, cross, hook) — or shoot with the pistol |
+| G | kick |
+| Right click / B (hold) | block |
+| X | dodge to the side |
 | Q | fists / pistol |
 | V | view from inside the car / from behind |
 | N | next radio station (in a car) |
@@ -134,6 +137,14 @@ before time runs out. Every job pays money.
 - **Spotify station** (Mac, with the Spotify app installed): when you pick *Spotify* with **N**, the game tells your own Spotify app to play, and pauses it when you get out of the car. The song name shows on the radio. The first time, macOS asks "Unity wants to control Spotify": click **OK**
 - **DRC flags** wave in the wind at every commune, the airport, the stadium, the port and Place du 30 Juin
 - **O** = change clothes: the sapeur suit, or the **street look** (Leopards jersey, jeans, white sneakers, red cap). You wear the same clothes when you sit in the car
+
+## Version 12 adds: real bodies, real fights, kuluna and the ring 🥊
+- **New bodies for everyone**: knees, elbows, shoulders, a spine and a head that move. People walk with bending knees and swinging arms
+- **Real faces**: eyes, eyebrows, nose, lips, ears, hair, and a short beard for you (and some men in the street)
+- **Better fighting**: click fast for a combo (**jab, cross, hook**), **G** = kick, hold **right click / B** to block, **X** to dodge. People have health now: a health bar shows who you fight. Watch for them pulling their fist back, then block or dodge!
+- **Street fights**: sometimes two people near you start fighting each other and others stop to watch. Join in if you want
+- **Kuluna** (street gangs) wait at a corner in Matete, Kimbanseke and Selembao (red dots on the map). Get close and all three attack you. Beat them all: **+$300** (no police stars: it's self-defense). They come back later
+- **Ring ya Kin** at Place du 30 Juin (red dot on the map): walk into the ring to fight for money. 5 fighters, from Bokilo ($400) to Nkoy ya Kin ($1,500). Each win brings a stronger fighter
 
 ## How to open
 Open the folder in Unity Hub (Unity 2022.3). The game is in `Assets/Scenes/Main.unity`. Press ▶ Play.

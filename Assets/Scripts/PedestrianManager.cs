@@ -21,6 +21,8 @@ public class PedestrianManager : MonoBehaviour
 	static readonly Color[] Pants = { new Color(0.12f, 0.12f, 0.18f), new Color(0.25f, 0.3f, 0.5f), new Color(0.4f, 0.3f, 0.2f), new Color(0.15f, 0.15f, 0.15f), new Color(0.85f, 0.82f, 0.7f) };
 	static readonly Color[] Skin = { new Color(0.36f, 0.22f, 0.14f), new Color(0.27f, 0.16f, 0.1f), new Color(0.45f, 0.29f, 0.18f) };
 	static readonly Color[] Basins = { new Color(0.85f, 0.85f, 0.88f), new Color(0.2f, 0.45f, 0.9f), new Color(0.9f, 0.2f, 0.2f) };
+	static readonly Color[] Shoes = { new Color(0.1f, 0.08f, 0.07f), new Color(0.9f, 0.9f, 0.9f), new Color(0.35f, 0.2f, 0.1f), new Color(0.15f, 0.2f, 0.45f) };
+	static readonly Color[] HairColors = { new Color(0.04f, 0.03f, 0.03f), new Color(0.08f, 0.05f, 0.04f), new Color(0.2f, 0.12f, 0.06f) };
 
 	void Awake()
 	{
@@ -104,15 +106,44 @@ public class PedestrianManager : MonoBehaviour
 		return p;
 	}
 
+	// A person for a fight (kuluna, ring fighter, someone watching): stands where you say
+	public Pedestrian Spawn(Vector3 position, float yaw)
+	{
+		Pedestrian p = Make();
+		if (p == null)
+			return null;
+		p.Init(this, NearestBlockCenter(position), 0, 1, 0f);
+		p.transform.SetPositionAndRotation(new Vector3(position.x, 0.06f, position.z), Quaternion.Euler(0, yaw, 0));
+		return p;
+	}
+
+	// Kuluna (street gang): black or red tank top, dark trousers, red bandana. Ring fighters: bare chest and shorts.
+	public void DressFighter(Pedestrian p, bool kuluna)
+	{
+		p.carriesBasin = false;
+		Color skin = Pick(Skin);
+		Color top = kuluna ? (Random.value < 0.5f ? new Color(0.08f, 0.08f, 0.08f) : new Color(0.6f, 0.05f, 0.05f)) : skin;
+		Color legs = kuluna ? new Color(0.15f, 0.17f, 0.12f) : (Random.value < 0.5f ? new Color(0.8f, 0.1f, 0.1f) : new Color(0.1f, 0.3f, 0.8f));
+		Paint(p, skin, top, legs, false, false, false, kuluna, true, Pick(HairColors), Shoes[0], Basins[0], top);
+	}
+
 	// Different clothes for everyone: shirts and trousers, or a pagne (wrap skirt) and head wrap.
-	// Some carry a basin on their head, like sellers in Kinshasa.
+	// Some carry a basin on their head, like sellers in Kinshasa. Some men have a beard.
 	void Dress(Pedestrian p)
 	{
 		bool pagne = Random.value < 0.45f;
 		bool scarf = pagne && Random.value < 0.75f;
 		bool basin = Random.value < (pagne ? 0.35f : 0.1f);
+		bool beard = !pagne && Random.value < 0.35f;
 		p.carriesBasin = basin;
-		Color shirt = Pick(Clothes), wrap = Pick(Clothes), legs = Pick(Pants), skin = Pick(Skin), head = Pick(Clothes), bowl = Pick(Basins);
+		Paint(p, Pick(Skin), Pick(Clothes), Pick(Pants), pagne, scarf, basin, false, beard, Pick(HairColors), Pick(Shoes), Pick(Basins), Pick(Clothes), Pick(Clothes));
+	}
+
+	void Paint(Pedestrian p, Color skin, Color shirt, Color legs, bool pagne, bool scarf, bool basin, bool bandana, bool beard,
+		Color hairColor, Color shoes, Color bowl, Color wrap, Color? headColor = null)
+	{
+		Color head = headColor ?? wrap;
+		Color lips = new Color(skin.r * 0.62f, skin.g * 0.5f, skin.b * 0.5f);
 
 		MaterialPropertyBlock mpb = new MaterialPropertyBlock();
 		foreach (Renderer r in p.GetComponentsInChildren<Renderer>(true))
@@ -125,7 +156,12 @@ public class PedestrianManager : MonoBehaviour
 				case "Pants": c = pagne ? skin : legs; break;
 				case "Wrap": r.gameObject.SetActive(pagne); c = wrap; break;
 				case "Scarf": r.gameObject.SetActive(scarf); c = head; break;
-				case "Hair": r.gameObject.SetActive(!scarf); break;
+				case "Hair": r.gameObject.SetActive(!scarf && !bandana); c = hairColor; break;
+				case "Bandana": r.gameObject.SetActive(bandana); break;
+				case "Beard": r.gameObject.SetActive(beard); c = hairColor; break;
+				case "Brow": c = hairColor; break;
+				case "Lips": c = lips; break;
+				case "Shoes": c = shoes; break;
 				case "Basin": r.gameObject.SetActive(basin); c = bowl; break;
 				case "Goods": r.gameObject.SetActive(basin); break;
 			}

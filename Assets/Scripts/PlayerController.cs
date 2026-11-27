@@ -23,12 +23,17 @@ public class PlayerController : MonoBehaviour
 	public float CurrentSpeed { get; private set; }
 
 	CharacterController cc;
+	Body body;
 	float verticalSpeed;
 	float walkCycle;
+
+	public bool Grounded { get { return cc != null && cc.isGrounded; } }
+	public float WalkCycle { get { return walkCycle; } }
 
 	void Awake()
 	{
 		cc = GetComponent<CharacterController>();
+		body = GetComponent<Body>();
 	}
 
 	void Update()
@@ -67,8 +72,13 @@ public class PlayerController : MonoBehaviour
 		cc.Move((move * speed + Vector3.up * verticalSpeed) * dt);
 		CurrentSpeed = move.magnitude * speed;
 
-		// Swing arms and legs
+		// Swing arms and legs (with knees and elbows bending)
 		walkCycle += dt * CurrentSpeed * 1.7f;
+		if (body != null)
+		{
+			body.Walk(walkCycle, Mathf.Clamp01(CurrentSpeed / 6f) + (CurrentSpeed > 0.2f ? 0.25f : 0f));
+			return;
+		}
 		float swing = Mathf.Sin(walkCycle) * Mathf.Clamp01(CurrentSpeed / 3f) * 35f;
 		if (leftLeg != null) leftLeg.localRotation = Quaternion.Euler(swing, 0, 0);
 		if (rightLeg != null) rightLeg.localRotation = Quaternion.Euler(-swing, 0, 0);

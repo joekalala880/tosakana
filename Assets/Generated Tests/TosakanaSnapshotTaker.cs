@@ -317,6 +317,64 @@ public class TosakanaSnapshotTaker : MonoBehaviour
 		rig.SetPitch(6f);
 		yield return new WaitForSeconds(2.2f);
 		Save(cam, rt, folder, "33_street_look_leopards");
+
+		// Version 12: your face, a street fight, kuluna, the ring
+		game.ChangeClothes();   // back in the sapeur suit
+		game.player.Teleport(new Vector3(-58f, 0.05f, 21.4f), 90f);
+		rig.SetTarget(game.player.transform, false, 1.7f, 1.62f);
+		rig.SetYaw(250f);
+		rig.SetPitch(2f);
+		yield return new WaitForSeconds(0.6f);
+		Save(cam, rt, folder, "34_your_face");
+		rig.SetTarget(game.player.transform, false);
+
+		PlayerCombat fists = game.player.GetComponent<PlayerCombat>();
+		StreetFights sf = game.GetComponent<StreetFights>();
+		Vector3 me = game.player.transform.position;
+		var walkers = Pedestrian.All.FindAll(p => p.role == Pedestrian.Role.Normal && p.CurrentMood == Pedestrian.Mood.Walk && !p.IsDown && !p.carriesBasin && !p.cheering);
+		if (walkers.Count >= 5)
+		{
+			Vector3 at = me + new Vector3(7f, 0.01f, 0);
+			walkers[0].transform.position = at + new Vector3(-0.7f, 0, 0);
+			walkers[1].transform.position = at + new Vector3(0.7f, 0, 0);
+			for (int k = 2; k < 5; k++) walkers[k].transform.position = at + new Vector3(-2f + (k - 2) * 2f, 0, -2.6f);
+			sf.Begin(walkers[0], walkers[1]);
+			rig.SetYaw(70f);
+			rig.SetPitch(10f);
+			yield return new WaitForSeconds(2.2f);
+			Save(cam, rt, folder, "35_street_fight");
+			sf.Stop();
+			walkers[0].CalmDown();
+			walkers[1].CalmDown();
+		}
+
+		Kuluna gangs = game.GetComponent<Kuluna>();
+		if (gangs.Gangs.Count > 0)
+		{
+			Kuluna.Gang g = gangs.Gangs[0];
+			game.player.Teleport(g.spot + new Vector3(16f, 0.05f, 0), 270f);
+			rig.SetYaw(270f);
+			rig.SetPitch(8f);
+			yield return new WaitForSeconds(0.6f);
+			Save(cam, rt, folder, "36_kuluna_corner");
+		}
+
+		FightClub club = game.GetComponent<FightClub>();
+		if (PoliceManager.Instance != null) PoliceManager.Instance.ResetWanted();
+		game.player.Teleport(club.ringCenter + new Vector3(-1.5f, 0.1f, 0), 90f);
+		float until = Time.time + 6f;
+		while (club.CurrentState != FightClub.State.Fighting && Time.time < until)
+			yield return null;
+		rig.SetYaw(45f);
+		rig.SetPitch(14f);
+		yield return new WaitForSeconds(1.2f);
+		if (club.Opponent != null)
+		{
+			club.Opponent.transform.position = game.player.transform.position + game.player.transform.forward * 1.3f + Vector3.up * 0.0f;
+			fists.Kick();
+			yield return new WaitForSeconds(0.2f);
+		}
+		Save(cam, rt, folder, "37_ring_fight_kick");
 		Finished = true;
 	}
 
