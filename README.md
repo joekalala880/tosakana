@@ -16,7 +16,8 @@ before time runs out. Every job pays money.
 | ![Traffic at the Grand Marché](Docs/12_traffic_at_crossroads.jpg) | ![A seller carrying a basin](Docs/13_basin_seller.jpg) |
 | ![Police chase with 3 wanted stars](Docs/14_police_chase.jpg) | ![BUSTED](Docs/15_busted.jpg) |
 | ![Talking in Lingala in Lemba](Docs/16_talking_in_lingala.jpg) | ![Mont-Ngafula](Docs/18_bumbu_and_mont_ngafula.jpg) |
-| ![A roulage officer on Boulevard du 30 Juin](Docs/19_roulage_officer.jpg) | |
+| ![A roulage officer on Boulevard du 30 Juin](Docs/19_roulage_officer.jpg) | ![They fight back](Docs/21_they_fight_back.jpg) |
+| ![N'djili airport terminal](Docs/23_ndjili_terminal.jpg) | ![Flying over Kinshasa](Docs/24_flying_over_kinshasa.jpg) |
 
 ## Places in the city
 - **Place du 30 Juin** – the square with the DRC flag (you start here)
@@ -37,6 +38,8 @@ before time runs out. Every job pays money.
 | E | get in or out of a car |
 | H | horn |
 | T | talk to someone (in Lingala) |
+| Left click / R | punch |
+| In a plane | W/S speed · A/D turn · ↑ or Space climb · ↓ or C dive |
 | Esc | free the mouse (click to take it back) |
 
 ## Version 1 has
@@ -85,6 +88,18 @@ before time runs out. Every job pays money.
 - **End of a mission:** the customer thanks you and blesses you: *"Matondo mingi! Nzambe apambola yo!"*
 - **Roulage officers** stand in the middle of 5 busy crossroads. They whistle, wave, and the traffic stops and goes when they say.
   They shout *"Leka! Leka!"* and *"Telema kuna!"* Hit one and you get 2 wanted stars
+
+## Version 6 adds: fights, a bigger Kinshasa and N'djili airport 🥊
+- **Punch** with left click or R. People fall, then run away (*"Bosalisa ngai!"*) or fight back (*"Yaka! Tobunda!"*)
+- A **health bar**; if it runs out you are KNOCKED OUT (*"Babeti yo!"*)
+- Wanted on foot: **police officers get out of their cars** and run at you (*"Maboko likolo!"*). Three punches knock one down
+- The city grows east: **Matete, Masina, N'djili, Kimbanseke, Kingasani** and **Boulevard Lumumba** (17 communes, 845 buildings)
+- **Aéroport International de N'djili**: runway, terminal, control tower, planes, and a plane that takes off again and again
+
+## Version 7 adds: fly the planes ✈️
+- Press **E** next to a plane at the terminal to get in
+- W/S speed, A/D turn, ↑ or Space climb (when fast enough), ↓ or C dive; speed and height on the screen
+- Hit a building or the ground too hard: **CRASHED** (*"Avion ekwei!"*)
 
 ## How to open
 Open the folder in Unity Hub (Unity 2022.3). The game is in `Assets/Scenes/Main.unity`. Press ▶ Play.
