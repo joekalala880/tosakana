@@ -31,7 +31,18 @@ public class VoiceRecorderWindow : EditorWindow
 	public static string PathFor(Lingala.Line line) { return Folder + "/" + line.Key + ".wav"; }
 	public static bool IsRecorded(Lingala.Line line) { return File.Exists(PathFor(line)); }
 
-	void OnEnable() { EditorApplication.update += Tick; }
+	void OnEnable()
+	{
+		EditorApplication.update += Tick;
+		AskForMicrophone();
+	}
+
+	// Ask the Mac to let Unity use the microphone (a popup appears the first time: click Allow)
+	static void AskForMicrophone()
+	{
+		if (!Application.HasUserAuthorization(UserAuthorization.Microphone))
+			Application.RequestUserAuthorization(UserAuthorization.Microphone);
+	}
 	void OnDisable()
 	{
 		EditorApplication.update -= Tick;
@@ -97,6 +108,8 @@ public class VoiceRecorderWindow : EditorWindow
 		{
 			EditorGUILayout.HelpBox("Unity hears total silence from the microphone. Your Mac is probably not letting Unity use it.\n" +
 				"1. Click the button below.  2. Turn ON \"Unity\" in the Microphone list.  3. Quit Unity and open it again.", MessageType.Error);
+			if (GUILayout.Button("Ask the Mac for the microphone again", GUILayout.Height(28)))
+				AskForMicrophone();
 			if (GUILayout.Button("Open Mac microphone settings", GUILayout.Height(28)))
 				Application.OpenURL("x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone");
 		}
