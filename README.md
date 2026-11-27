@@ -16,6 +16,7 @@ before time runs out. Every job pays money.
 | ![Traffic at the Grand Marché](Docs/12_traffic_at_crossroads.jpg) | ![A seller carrying a basin](Docs/13_basin_seller.jpg) |
 | ![Police chase with 3 wanted stars](Docs/14_police_chase.jpg) | ![BUSTED](Docs/15_busted.jpg) |
 | ![Talking in Lingala in Lemba](Docs/16_talking_in_lingala.jpg) | ![Mont-Ngafula](Docs/18_bumbu_and_mont_ngafula.jpg) |
+| ![A roulage officer on Boulevard du 30 Juin](Docs/19_roulage_officer.jpg) | |
 
 ## Places in the city
 - **Place du 30 Juin** – the square with the DRC flag (you start here)
@@ -35,6 +36,7 @@ before time runs out. Every job pays money.
 | Space | jump / brake |
 | E | get in or out of a car |
 | H | horn |
+| T | talk to someone (in Lingala) |
 | Esc | free the mouse (click to take it back) |
 
 ## Version 1 has
@@ -74,6 +76,15 @@ before time runs out. Every job pays money.
   - Drivers shout *"Pesa nzela!"* and the police shout *"Kanga ye!"*
 - Missions and big messages have Lingala too (*"Kende kozwa paquet na Gombe"*, *"Matondo!"*, *"Bakangi yo!"*)
 - All the Lingala is in one file, `Assets/Scripts/Lingala.cs`, so it is easy to fix or add lines
+
+## Version 5 adds: real voices and roulage 🎙️👮🏾
+- **People speak out loud, no text bubbles.** Every Lingala line is spoken with Joel's own recorded voice
+  (each person gets a slightly different pitch, so one voice becomes many people)
+- **Voice recorder inside Unity:** Tools → Tosakana → Record Voices. 57 lines, with ● Record, ■ Stop and ▶ Listen.
+  Lines not recorded yet play a soft murmur that follows the vowels of the words
+- **End of a mission:** the customer thanks you and blesses you: *"Matondo mingi! Nzambe apambola yo!"*
+- **Roulage officers** stand in the middle of 5 busy crossroads. They whistle, wave, and the traffic stops and goes when they say.
+  They shout *"Leka! Leka!"* and *"Telema kuna!"* Hit one and you get 2 wanted stars
 
 ## How to open
 Open the folder in Unity Hub (Unity 2022.3). The game is in `Assets/Scenes/Main.unity`. Press ▶ Play.

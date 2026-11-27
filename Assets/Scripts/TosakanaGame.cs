@@ -161,7 +161,7 @@ public class TosakanaGame : MonoBehaviour
 			{
 				Pedestrian angry = PedestrianManager.Instance.SpawnDriver(ExitSpot(nearest), nearest.transform.eulerAngles.y - 90f);
 				if (angry != null)
-					SpeechBubble.Say(angry.gameObject, Lingala.Pick(Lingala.Thief), 3f);
+					Voice.Say(angry.gameObject, Lingala.Pick(Lingala.Thief));
 			}
 			PoliceManager police = PoliceManager.Instance;
 			if (police != null)
@@ -216,7 +216,7 @@ public class TosakanaGame : MonoBehaviour
 			return null;
 		int line = talkIndex % Lingala.PlayerSays.Length;
 		talkIndex++;
-		SpeechBubble.Say(player.gameObject, Lingala.PlayerSays[line], 2.5f, 2.5f, 0.7f);
+		Voice.Say(player.gameObject, Lingala.PlayerSays[line]);
 		StartCoroutine(AnswerSoon(best, line));
 		return best;
 	}
@@ -272,6 +272,8 @@ public class TosakanaGame : MonoBehaviour
 		if (commune != lastCommune)
 		{
 			lastCommune = commune;
+			if (IsPlaying)
+				Voice.SayToYou(Lingala.WelcomeTo(commune), false);   // only if you recorded it
 			if (areaBanner != null)
 			{
 				areaBanner.text = Lingala.Welcome.lingala + " " + commune.ToUpper();

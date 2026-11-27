@@ -123,7 +123,7 @@ public class TosakanaSnapshotTaker : MonoBehaviour
 		game.player.Teleport(taxi.transform.position - taxi.transform.right * 2.4f, 90f);
 		yield return null;
 		game.ToggleCar();
-		taxi.Teleport(new Vector3(-110f, 0f, 29f), 90f);
+		taxi.Teleport(new Vector3(-110f, 0f, 26.7f), 90f);   // the eastbound lane (the roulage stands in the middle)
 		rig.SetYaw(90f);
 		rig.SetPitch(10f);
 		pm.ReportCrime(3, "You hit a person!");
@@ -191,6 +191,15 @@ public class TosakanaSnapshotTaker : MonoBehaviour
 		rig.SetPitch(18f);
 		yield return new WaitForSeconds(0.6f);
 		Save(cam, rt, folder, "18_bumbu_and_mont_ngafula");
+
+		// Version 5: a roulage officer on Boulevard du 30 Juin
+		TrafficOfficer officer = TrafficOfficer.At(3, 4);
+		Vector3 o = officer.transform.position;
+		game.player.Teleport(new Vector3(o.x - 7f, 0.05f, o.z - 8.5f), 45f);
+		rig.SetYaw(40f);
+		rig.SetPitch(8f);
+		yield return new WaitForSeconds(1f);
+		Save(cam, rt, folder, "19_roulage_officer");
 		Finished = true;
 	}
 

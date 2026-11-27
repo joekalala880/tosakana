@@ -158,7 +158,7 @@ public class Pedestrian : MonoBehaviour
 			greetCooldown = 25f;
 			nextGreetTime = Time.time + 4f;
 			if (Random.value < 0.6f)
-				SpeechBubble.Say(gameObject, Lingala.Pick(carriesBasin ? Lingala.SellerSays : Lingala.Greetings));
+				Voice.Say(gameObject, Lingala.Pick(carriesBasin ? Lingala.SellerSays : Lingala.Greetings));
 		}
 	}
 
@@ -167,7 +167,7 @@ public class Pedestrian : MonoBehaviour
 	{
 		talkTimer = 3.5f;
 		Lingala.Line[] answers = carriesBasin && Random.value < 0.5f ? Lingala.SellerSays : Lingala.Answers[lineIndex % Lingala.Answers.Length];
-		SpeechBubble.Say(gameObject, Lingala.Pick(answers), 3.2f);
+		Voice.Say(gameObject, Lingala.Pick(answers));
 	}
 
 	void ArriveAtCorner()
@@ -226,7 +226,7 @@ public class Pedestrian : MonoBehaviour
 			dodgeVelocity = t.right * away * 6.5f;
 			dodgeTimer = 0.5f;
 			Dodges++;
-			SpeechBubble.Say(gameObject, Lingala.Pick(Lingala.WatchOut), 2f);
+			Voice.Say(gameObject, Lingala.Pick(Lingala.WatchOut));
 			Face(dodgeVelocity);
 			return true;
 		}
@@ -246,7 +246,7 @@ public class Pedestrian : MonoBehaviour
 		dodgeTimer = 0;
 		talkTimer = 0;
 		Knockdowns++;
-		SpeechBubble.Say(gameObject, Lingala.Pick(Lingala.Hit), 3f, 1.4f);
+		Voice.Say(gameObject, Lingala.Pick(Lingala.Hit));
 		transform.position += car.transform.forward * Mathf.Sign(car.Speed) * 1.5f;
 		yaw = car.transform.eulerAngles.y + (car.Speed > 0 ? 180f : 0f);
 		TosakanaGame game = TosakanaGame.Instance;

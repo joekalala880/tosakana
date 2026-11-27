@@ -84,6 +84,11 @@ public static class CityBuilder
 		MakeCar(cars, "Taxi (yours)", TaxiStart, 90f, true, yellow);
 		ParkCars(cars, 30);
 
+		// Roulage officers at busy crossroads (4 on Boulevard du 30 Juin, 1 near the Grand Marché)
+		Transform roulage = new GameObject("Roulage").transform;
+		foreach (Vector2Int n in new[] { new Vector2Int(2, 4), new Vector2Int(3, 4), new Vector2Int(4, 4), new Vector2Int(5, 4), new Vector2Int(3, 2) })
+			MakeOfficer(roulage, n.x, n.y);
+
 		PlayerController player = MakePlayer();
 
 		// Game manager
@@ -964,6 +969,46 @@ public static class CityBuilder
 		lights.blueMaterial = sirenBlue;
 		lights.siren = siren;
 		return car;
+	}
+
+	// A roulage officer: blue uniform, white cap, yellow vest, white gloves, on a white platform
+	static void MakeOfficer(Transform parent, int a, int b)
+	{
+		Vector3 pos = new Vector3(FirstRoad + a * Pitch, 0, FirstRoad + b * Pitch);
+		Material uniform = Mat("Roulage Blue", new Color(0.08f, 0.15f, 0.38f), 0.2f);
+		Material vest = Mat("Roulage Vest", new Color(0.85f, 0.95f, 0.15f), 0.3f);
+		GameObject platform = Shape(parent, PrimitiveType.Cylinder, "Roulage Platform", white, pos + Vector3.up * 0.06f, new Vector3(2.2f, 0.06f, 2.2f), Vector3.zero, false);
+		platform.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+		GameObject o = new GameObject("Roulage Officer");
+		o.layer = 2;
+		o.transform.SetParent(parent);
+		o.transform.position = pos + Vector3.up * 0.12f;
+		CapsuleCollider col = o.AddComponent<CapsuleCollider>();
+		col.isTrigger = true;
+		col.center = new Vector3(0, 0.9f, 0);
+		col.height = 1.8f;
+		col.radius = 0.4f;
+		Rigidbody rb = o.AddComponent<Rigidbody>();
+		rb.isKinematic = true;
+		rb.useGravity = false;
+		TrafficOfficer officer = o.AddComponent<TrafficOfficer>();
+		officer.nodeA = a;
+		officer.nodeB = b;
+
+		Part(o, PrimitiveType.Capsule, uniform, new Vector3(0, 1.2f, 0), new Vector3(0.55f, 0.42f, 0.38f));
+		Part(o, PrimitiveType.Cube, vest, new Vector3(0, 1.22f, 0), new Vector3(0.58f, 0.5f, 0.42f));
+		Part(o, PrimitiveType.Sphere, skin, new Vector3(0, 1.72f, 0), Vector3.one * 0.32f);
+		Part(o, PrimitiveType.Cylinder, white, new Vector3(0, 1.88f, 0), new Vector3(0.36f, 0.06f, 0.36f));
+		Part(o, PrimitiveType.Cube, black, new Vector3(0, 1.84f, 0.18f), new Vector3(0.3f, 0.03f, 0.14f));
+		foreach (float x in new[] { -0.07f, 0.07f })
+			Part(o, PrimitiveType.Sphere, black, new Vector3(x, 1.75f, 0.15f), Vector3.one * 0.045f);
+		Limb(o, "Left Leg", new Vector3(-0.12f, 0.86f, 0), new Vector3(0.17f, 0.86f, 0.19f), uniform);
+		Limb(o, "Right Leg", new Vector3(0.12f, 0.86f, 0), new Vector3(0.17f, 0.86f, 0.19f), uniform);
+		officer.leftArm = Limb(o, "Left Arm", new Vector3(-0.34f, 1.42f, 0), new Vector3(0.13f, 0.62f, 0.15f), uniform);
+		officer.rightArm = Limb(o, "Right Arm", new Vector3(0.34f, 1.42f, 0), new Vector3(0.13f, 0.62f, 0.15f), uniform);
+		foreach (Transform arm in new[] { officer.leftArm, officer.rightArm })
+			Part(arm.gameObject, PrimitiveType.Sphere, white, new Vector3(0, -0.66f, 0), Vector3.one * 0.15f).name = "Glove";
 	}
 
 	static GameObject SavePrefab(GameObject go, string path)

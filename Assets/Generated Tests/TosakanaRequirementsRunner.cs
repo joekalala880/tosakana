@@ -137,6 +137,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		yield return null;
 		Check("Deliver in time = MISSION PASSED +$" + reward + " (money $" + game.Money + ")", missions.CurrentStep == MissionManager.Step.Passed && game.Money == money0 + reward && reward >= 200 && game.bigText.text == "MISSION PASSED");
 		Check("Money shows on the screen (" + game.moneyText.text + ")", game.moneyText.text == "$" + game.Money.ToString("N0"));
+		Check("End of the mission: the customer blesses you (\"" + Voice.Narrator.LastLingala + "\")", IsLine(Voice.Narrator.LastLingala, Lingala.Blessings));
 
 		missions.waitTimer = 0.01f;
 		yield return new WaitForSeconds(0.15f);
@@ -201,11 +202,11 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		stopper.PlaceAt(1, 0, 1, 4f);
 		player.Teleport(new Vector3(laneAhead.x, 0.05f, laneAhead.z), 270f);
 		float honkWait = Time.time + 7f;
-		while (Time.time < honkWait && !IsLine(BubbleText(stopper.gameObject), Lingala.Honk))
+		while (Time.time < honkWait && !IsLine(Said(stopper.gameObject), Lingala.Honk))
 			yield return null;
 		float gap = Flat(stopCar.transform.position - player.transform.position);
 		Check("Traffic stops for people in the road (stopped " + gap.ToString("0.0") + " m away)", Mathf.Abs(stopCar.Speed) < 1f && gap > 2.2f && gap < 12f && stopper.Blocked);
-		Check("The waiting driver shouts in Lingala (\"" + BubbleText(stopper.gameObject) + "\")", IsLine(BubbleText(stopper.gameObject), Lingala.Honk));
+		Check("The waiting driver shouts in Lingala (\"" + Said(stopper.gameObject) + "\")", IsLine(Said(stopper.gameObject), Lingala.Honk));
 
 		// Taking a car from the traffic
 		player.Teleport(stopCar.transform.position - stopCar.transform.right * 2.4f, 0f);
@@ -216,7 +217,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		yield return null;
 		Check("E on a traffic car = you take it and the driver gets out", took && game.CurrentCar == stopCar && !stopper.enabled && Pedestrian.All.Count == peopleBefore + 1);
 		Pedestrian angryDriver = Pedestrian.All[Pedestrian.All.Count - 1];
-		Check("The driver shouts \"" + BubbleText(angryDriver.gameObject) + "\"", IsLine(BubbleText(angryDriver.gameObject), Lingala.Thief));
+		Check("The driver shouts \"" + Said(angryDriver.gameObject) + "\"", IsLine(Said(angryDriver.gameObject), Lingala.Thief));
 		yield return new WaitForSeconds(0.3f);
 		Check("A new car joins the traffic, so the city stays busy (" + tm.ActiveCount + ")", tm.ActiveCount >= tm.carCount);
 
@@ -247,7 +248,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		yield return new WaitForSeconds(1.7f);
 		stopCar.testThrottle = 0;
 		Check("People jump out of the way of a fast car (" + jumper.Dodges + " jump)", jumper.Dodges > 0 && !jumper.IsDown);
-		Check("...and shout \"" + BubbleText(jumper.gameObject) + "\"", IsLine(BubbleText(jumper.gameObject), Lingala.WatchOut));
+		Check("...and shout \"" + Said(jumper.gameObject) + "\"", IsLine(Said(jumper.gameObject), Lingala.WatchOut));
 		jumper.testHold = false;
 
 		// A car that hits someone knocks them down; they get back up
@@ -262,7 +263,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		stopCar.testThrottle = 0;
 		stopCar.testBrake = true;
 		Check("A car that hits someone knocks them down", unlucky.IsDown && unlucky.Knockdowns == 1);
-		Check("...and they say \"" + BubbleText(unlucky.gameObject) + "\"", IsLine(BubbleText(unlucky.gameObject), Lingala.Hit));
+		Check("...and they say \"" + Said(unlucky.gameObject) + "\"", IsLine(Said(unlucky.gameObject), Lingala.Hit));
 		yield return new WaitForSeconds(3.2f);
 		stopCar.testBrake = false;
 		Check("...and they get back up", !unlucky.IsDown);
@@ -310,7 +311,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 				if (d != null && d.Chasing)
 				{
 					closest = Mathf.Min(closest, Flat(d.transform.position - stopCar.transform.position));
-					if (IsLine(BubbleText(d.gameObject), Lingala.Police)) shout = BubbleText(d.gameObject);
+					if (IsLine(Said(d.gameObject), Lingala.Police)) shout = Said(d.gameObject);
 				}
 			yield return null;
 		}
@@ -388,17 +389,78 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		Check("Hint: \"" + game.hintText.text + "\"", game.hintText.text.Contains("Press T to talk") && game.hintText.text.Contains("Loba"));
 		Pedestrian talked = game.TalkToNearest();
 		yield return null;
-		Check("T = you say \"" + BubbleText(player.gameObject) + "\"", talked == friend && BubbleText(player.gameObject) == "Mbote!");
+		Check("T = you say \"" + Said(player.gameObject) + "\"", talked == friend && Said(player.gameObject) == "Mbote!");
 		yield return new WaitForSeconds(1.1f);
-		Check("...and they answer \"" + BubbleText(friend.gameObject) + "\" and stop to look at you", friend.Talking && IsLine(BubbleText(friend.gameObject), Lingala.Answers[0]));
+		Check("...and they answer \"" + Said(friend.gameObject) + "\" and stop to look at you", friend.Talking && IsLine(Said(friend.gameObject), Lingala.Answers[0]));
 		yield return new WaitForSeconds(0.3f);
 		game.TalkToNearest();
 		yield return new WaitForSeconds(1.1f);
-		Check("T again = the next line (\"" + BubbleText(player.gameObject) + "\" -> \"" + BubbleText(friend.gameObject) + "\")",
-			BubbleText(player.gameObject) == "Sango nini?" && IsLine(BubbleText(friend.gameObject), Lingala.Answers[1]));
+		Check("T again = the next line (\"" + Said(player.gameObject) + "\" -> \"" + Said(friend.gameObject) + "\")",
+			Said(player.gameObject) == "Sango nini?" && IsLine(Said(friend.gameObject), Lingala.Answers[1]));
 		friend.testHold = false;
 		friend.testNoDodge = false;
 		Check("The mission says it in Lingala too", missions.missionText.text.Contains("Kende kozwa paquet") || missions.missionText.text.Contains("Mema yango"));
+
+		// ================= Version 5: voices and roulage =================
+		Check("No speech bubbles: people talk out loud (no bubbles in the city)", GameObject.Find("Speech Bubble") == null && friend.GetComponent<VoiceSpeaker>() != null);
+		VoiceSpeaker friendVoice = friend.GetComponent<VoiceSpeaker>();
+		Check("A line that is not recorded yet plays a soft murmur (" + (friendVoice.CurrentClip != null ? friendVoice.CurrentClip.name : "none") + ")",
+			!friendVoice.LastWasRecording && friendVoice.CurrentClip != null && friendVoice.CurrentClip.name.StartsWith("Murmur") && friendVoice.CurrentClip.length > 0.2f);
+		var spoken = Lingala.AllSpoken();
+		var keys = new System.Collections.Generic.HashSet<string>();
+		bool keysOk = true;
+		foreach (var kv in spoken)
+			keysOk &= kv.Value.Key.Length > 0 && keys.Add(kv.Value.Key);
+		Check("Every line has its own recording name (" + spoken.Count + " lines to record)", keysOk && spoken.Count >= 50);
+		string wav = System.IO.Path.Combine(Application.temporaryCachePath, "tosakana_test.wav");
+		float[] tone = new float[22050];
+		for (int i = 0; i < tone.Length; i++) tone[i] = Mathf.Sin(i * 0.1f) * 0.5f;
+		WavFile.Write(wav, tone, 22050);
+		byte[] bytes = System.IO.File.ReadAllBytes(wav);
+		Check("Recordings are saved as .wav files (" + bytes.Length + " bytes)", bytes.Length == 44 + tone.Length * 2 && System.Text.Encoding.ASCII.GetString(bytes, 0, 4) == "RIFF" && System.Text.Encoding.ASCII.GetString(bytes, 8, 4) == "WAVE");
+		Check("Quiet start and end are cut from recordings", WavFile.Clean(new float[44100], 44100).Length == 0);
+
+		// Roulage
+		int switches = 0;
+		foreach (TrafficOfficer o in TrafficOfficer.All) switches += o.Switches;
+		Check("Roulage officers stand at " + TrafficOfficer.All.Count + " crossroads and switch the traffic (" + switches + " whistles)", TrafficOfficer.All.Count == 5 && switches >= 5);
+
+		TrafficOfficer officer = TrafficOfficer.At(3, 2);
+		officer.testFreeze = true;
+		officer.SetPhase(1);   // east-west may go, so cars going north must wait
+		TrafficDriver waiter = tm.Drivers.Find(d => d != null && d.enabled);
+		Vector3 crossroads = tm.Node(3, 2);
+		ClearAround(crossroads + new Vector3(0, 0, -25f), 30f, waiter.Car);
+		waiter.PlaceAt(3, 1, 0, 6f);   // going north toward the officer
+		yield return new WaitForSeconds(5f);
+		float before2 = crossroads.z - waiter.transform.position.z;
+		Check("Traffic stops when the roulage says stop (" + before2.ToString("0.0") + " m before the crossroads)", waiter.WaitingForRoulage && Mathf.Abs(waiter.Car.Speed) < 1f && before2 > 6f && before2 < 20f);
+		officer.SetPhase(0);   // now north-south may go
+		yield return new WaitForSeconds(3f);
+		Check("...and goes when the roulage says go", !waiter.WaitingForRoulage && waiter.transform.position.z > crossroads.z - 5f);
+		officer.testFreeze = false;
+
+		// Don't hit the roulage!
+		pm.ResetWanted();
+		TrafficOfficer target = TrafficOfficer.At(2, 4);
+		Vector3 spot = target.transform.position;
+		if (!game.InCar)
+		{
+			player.Teleport(taxi.transform.position - taxi.transform.right * 2.3f, 0f);
+			yield return null;
+			game.ToggleCar();
+		}
+		CarController myCar = game.CurrentCar;
+		ClearAround(spot, 25f, myCar);
+		myCar.Teleport(new Vector3(spot.x - 18f, 0f, spot.z), 90f);
+		myCar.testThrottle = 1;
+		yield return new WaitForSeconds(1.7f);
+		myCar.testThrottle = 0;
+		myCar.testBrake = true;
+		Check("Hitting a roulage officer: he falls (\"" + Said(target.gameObject) + "\") and you get 2 stars (" + pm.Stars + ")", target.IsDown && pm.Stars == 2 && IsLine(Said(target.gameObject), Lingala.Hit));
+		yield return new WaitForSeconds(0.5f);
+		myCar.testBrake = false;
+		pm.ResetWanted();
 
 		Debug.Log("TOSAKANA-CHECK DONE: " + passed + " passed, " + failed + " failed");
 	}
@@ -427,10 +489,11 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		return Mathf.Max(dx, dz) > 19.5f && Mathf.Max(dx, dz) < 23f;
 	}
 
-	static string BubbleText(GameObject who)
+	// What this person, car or you said out loud in the last few seconds
+	static string Said(GameObject who)
 	{
-		SpeechBubble b = who.GetComponent<SpeechBubble>();
-		return b != null && b.Showing ? b.Text : "";
+		VoiceSpeaker v = who.GetComponent<VoiceSpeaker>();
+		return v != null && v.LastLingala != null && Time.time - v.LastTime < 8f ? v.LastLingala : "";
 	}
 
 	static bool IsLine(string text, Lingala.Line[] lines)

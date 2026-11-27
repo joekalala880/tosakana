@@ -14,6 +14,7 @@ public class TrafficDriver : MonoBehaviour
 	public int TurnsMade { get; private set; }
 	public float LaneError { get; private set; }   // meters away from its lane
 	public bool Blocked { get; private set; }      // something is in front
+	public bool WaitingForRoulage { get; private set; }   // a roulage officer told it to stop
 
 	TrafficManager manager;
 	CarController car;
@@ -101,7 +102,7 @@ public class TrafficDriver : MonoBehaviour
 				if (shoutCooldown <= 0)
 				{
 					shoutCooldown = 5f;
-					SpeechBubble.Say(gameObject, Lingala.Pick(Lingala.Police), 2.5f, 3.2f);
+					Voice.Say(gameObject, Lingala.Pick(Lingala.Police));
 				}
 				direct = true;
 				DriveStraightAt(target, gap.magnitude, speed);
@@ -153,6 +154,18 @@ public class TrafficDriver : MonoBehaviour
 		if (Mathf.Abs(car.aiSteer) > 0.6f)
 			want = Mathf.Min(want, Chasing ? 10f : 7f);
 
+		// A roulage officer at the next crossroads says stop: wait before the crossroads (the police in a chase don't wait)
+		WaitingForRoulage = false;
+		if (!Chasing && remaining > 6f)
+		{
+			TrafficOfficer officer = TrafficOfficer.At(toA, toB);
+			if (officer != null && !officer.CanGo(heading))
+			{
+				WaitingForRoulage = true;
+				want = Mathf.Min(want, Mathf.Max(0f, (remaining - 11f) * 1.2f));
+			}
+		}
+
 		// Look ahead for cars and people (the police in a chase push through)
 		Blocked = false;
 		if (!Chasing)
@@ -183,7 +196,7 @@ public class TrafficDriver : MonoBehaviour
 				honkCooldown = 6f;
 				if (game != null)
 					game.sound.HornAt(pos);
-				SpeechBubble.Say(gameObject, Lingala.Pick(Lingala.Honk), 2.5f, 3f);
+				Voice.Say(gameObject, Lingala.Pick(Lingala.Honk));
 			}
 			if (blockedTime > 5f)
 			{
@@ -198,7 +211,7 @@ public class TrafficDriver : MonoBehaviour
 		car.aiBrake = want < 0.5f && speed > 0.3f;
 
 		// Lost (pushed far off the street) or stuck: move it somewhere you can't see
-		if (LaneError > 6f || (speed < 0.3f && !Blocked))
+		if (LaneError > 6f || (speed < 0.3f && !Blocked && !WaitingForRoulage))
 			stuckTime += dt;
 		else
 			stuckTime = 0;

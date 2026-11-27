@@ -100,6 +100,7 @@ public class MissionManager : MonoBehaviour
 					timeLeft = TimeFor(Pickup, Dropoff);
 					ShowMarker(Dropoff);
 					game.sound.Pickup();
+					Voice.SayToYou(Lingala.Pick(Lingala.Pickup));
 					game.ShowBig("PACKAGE PICKED UP", "Take it to " + Dropoff.placeName + "!  ·  " + Lingala.Carry(Dropoff.placeName), new Color(1f, 0.85f, 0.2f), 2.5f);
 				}
 				break;
@@ -114,6 +115,7 @@ public class MissionManager : MonoBehaviour
 					waitTimer = waitSeconds;
 					ShowMarker(null);
 					game.sound.Passed();
+					Voice.SayToYou(Lingala.Pick(Lingala.Blessings));   // the customer thanks you and blesses you
 					game.ShowBig("MISSION PASSED", "+$" + Reward.ToString("N0") + "  ·  " + Lingala.Passed.lingala, new Color(0.45f, 1f, 0.45f), waitSeconds);
 				}
 				else if (timeLeft <= 0)
@@ -123,6 +125,7 @@ public class MissionManager : MonoBehaviour
 					waitTimer = waitSeconds;
 					ShowMarker(null);
 					game.sound.Failed();
+					Voice.SayToYou(Lingala.TooSlow);
 					game.ShowBig("MISSION FAILED", "You were too slow.  ·  " + Lingala.TooSlow.lingala, new Color(1f, 0.35f, 0.3f), waitSeconds);
 				}
 				break;

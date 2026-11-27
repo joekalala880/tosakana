@@ -8,7 +8,7 @@ public class GameSound : MonoBehaviour
 	[Range(0, 1)] public float effectsVolume = 0.8f;
 
 	AudioSource engine, city, effects;
-	AudioClip doorClip, pickupClip, passedClip, failedClip, crashClip, hornClip;
+	AudioClip doorClip, pickupClip, passedClip, failedClip, crashClip, hornClip, whistleClip;
 	float crashCooldown;
 
 	public AudioClip SirenClip { get; private set; }
@@ -40,6 +40,7 @@ public class GameSound : MonoBehaviour
 		failedClip = Tones("Failed", new[] { 392f, 330f, 262f }, 0.25f, 0.4f);
 		hornClip = MakeHorn();
 		SirenClip = MakeSiren();
+		whistleClip = MakeWhistle();
 	}
 
 	void Update()
@@ -65,6 +66,7 @@ public class GameSound : MonoBehaviour
 	// Sounds that come from a place in the city (a car honking at you, someone getting hit)
 	public void HornAt(Vector3 position) { AudioSource.PlayClipAtPoint(hornClip, position, effectsVolume * 0.7f); }
 	public void BumpAt(Vector3 position) { AudioSource.PlayClipAtPoint(doorClip, position, effectsVolume); }
+	public void WhistleAt(Vector3 position) { AudioSource.PlayClipAtPoint(whistleClip, position, effectsVolume * 0.8f); }
 
 	public void Crash()
 	{
@@ -104,6 +106,23 @@ public class GameSound : MonoBehaviour
 			data[i] = (Mathf.Sin(phase) * 0.6f + Mathf.Sin(phase * 2f) * 0.15f) * 0.35f;
 		}
 		return Make("Siren", data);
+	}
+
+	// The roulage whistle: two sharp trills
+	static AudioClip MakeWhistle()
+	{
+		int count = (int)(Rate * 0.7f);
+		float[] data = new float[count];
+		float phase = 0;
+		for (int i = 0; i < count; i++)
+		{
+			float t = (float)i / Rate;
+			bool on = t < 0.25f || (t > 0.35f && t < 0.65f);
+			float freq = 2800f + 180f * Mathf.Sin(2 * Mathf.PI * 32f * t);   // the little ball inside makes it trill
+			phase += 2 * Mathf.PI * freq / Rate;
+			data[i] = on ? Mathf.Sin(phase) * 0.3f : 0f;
+		}
+		return Make("Whistle", data);
 	}
 
 	static AudioClip MakeHorn()
