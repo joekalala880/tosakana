@@ -23,6 +23,7 @@ public class Pedestrian : MonoBehaviour
 	[HideInInspector] public bool testNoDodge;  // don't jump away
 
 	public bool IsDown { get { return downTimer > 0; } }
+	public bool Talking { get { return talkTimer > 0; } }
 	public bool Crossing { get; private set; }
 	public int Dodges { get; private set; }
 	public int Crossings { get; private set; }
@@ -33,7 +34,8 @@ public class Pedestrian : MonoBehaviour
 	int corner;
 	int turnDir = 1;
 	Vector3 target;
-	float downTimer, dodgeTimer, cycle;
+	float downTimer, dodgeTimer, cycle, talkTimer, greetCooldown;
+	static float nextGreetTime;
 	Vector3 dodgeVelocity;
 	float yaw;
 
@@ -110,6 +112,19 @@ public class Pedestrian : MonoBehaviour
 		if (!testNoDodge && WatchForCars())
 			return;
 
+		// Talking with you: stand and look at you
+		if (talkTimer > 0)
+		{
+			talkTimer -= dt;
+			TosakanaGame g = TosakanaGame.Instance;
+			if (g != null)
+				Face(g.player.transform.position - transform.position);
+			Swing(0);
+			return;
+		}
+
+		GreetYou(dt);
+
 		if (testHold)
 		{
 			Swing(0);
@@ -127,6 +142,32 @@ public class Pedestrian : MonoBehaviour
 			Face(to);
 		}
 		Swing(walkSpeed);
+	}
+
+	// Sometimes people say hello when you walk past
+	void GreetYou(float dt)
+	{
+		greetCooldown -= dt;
+		TosakanaGame game = TosakanaGame.Instance;
+		if (game == null || !game.IsPlaying || game.InCar || greetCooldown > 0 || Time.time < nextGreetTime)
+			return;
+		Vector3 d = game.player.transform.position - transform.position;
+		d.y = 0;
+		if (d.magnitude < 6f)
+		{
+			greetCooldown = 25f;
+			nextGreetTime = Time.time + 4f;
+			if (Random.value < 0.6f)
+				SpeechBubble.Say(gameObject, Lingala.Pick(carriesBasin ? Lingala.SellerSays : Lingala.Greetings));
+		}
+	}
+
+	// You pressed T: stop, look at you and answer
+	public void Answer(int lineIndex)
+	{
+		talkTimer = 3.5f;
+		Lingala.Line[] answers = carriesBasin && Random.value < 0.5f ? Lingala.SellerSays : Lingala.Answers[lineIndex % Lingala.Answers.Length];
+		SpeechBubble.Say(gameObject, Lingala.Pick(answers), 3.2f);
 	}
 
 	void ArriveAtCorner()
@@ -185,6 +226,7 @@ public class Pedestrian : MonoBehaviour
 			dodgeVelocity = t.right * away * 6.5f;
 			dodgeTimer = 0.5f;
 			Dodges++;
+			SpeechBubble.Say(gameObject, Lingala.Pick(Lingala.WatchOut), 2f);
 			Face(dodgeVelocity);
 			return true;
 		}
@@ -202,7 +244,9 @@ public class Pedestrian : MonoBehaviour
 	{
 		downTimer = 3f;
 		dodgeTimer = 0;
+		talkTimer = 0;
 		Knockdowns++;
+		SpeechBubble.Say(gameObject, Lingala.Pick(Lingala.Hit), 3f, 1.4f);
 		transform.position += car.transform.forward * Mathf.Sign(car.Speed) * 1.5f;
 		yaw = car.transform.eulerAngles.y + (car.Speed > 0 ? 180f : 0f);
 		TosakanaGame game = TosakanaGame.Instance;

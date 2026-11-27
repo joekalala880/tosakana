@@ -159,6 +159,38 @@ public class TosakanaSnapshotTaker : MonoBehaviour
 		yield return new WaitForSeconds(0.4f);
 		Save(cam, rt, folder, "15_busted");
 		taxi.testBrake = false;
+
+		// Version 4: communes and Lingala
+		yield return new WaitForSeconds(3.6f);   // let the BUSTED message go away
+		pm.enabled = false;
+		pm.ResetWanted();
+		game.player.Teleport(new Vector3(58f, 0.05f, -94.6f), 270f);   // Lemba sidewalk
+		Pedestrian friend = null;
+		foreach (Pedestrian p in Pedestrian.All)
+			if (!p.IsDown && !p.Crossing) { friend = p; break; }
+		friend.testHold = true;
+		friend.testNoDodge = true;
+		friend.transform.position = new Vector3(55.6f, 0.06f, -94.6f);
+		rig.SetYaw(250f);
+		rig.SetPitch(10f);
+		yield return new WaitForSeconds(0.3f);
+		game.TalkToNearest();
+		yield return new WaitForSeconds(1.2f);
+		Save(cam, rt, folder, "16_talking_in_lingala");
+		friend.testHold = false;
+		friend.testNoDodge = false;
+
+		game.player.Teleport(new Vector3(52f, 0.05f, -80f), 210f);   // in front of the Lemba sign
+		rig.SetYaw(170f);
+		rig.SetPitch(6f);
+		yield return new WaitForSeconds(0.4f);
+		Save(cam, rt, folder, "17_lemba_boyei_malamu");
+
+		game.player.Teleport(new Vector3(-30f, 0.05f, -145f), 270f);   // between Bumbu and Mont-Ngafula
+		rig.SetYaw(230f);
+		rig.SetPitch(18f);
+		yield return new WaitForSeconds(0.6f);
+		Save(cam, rt, folder, "18_bumbu_and_mont_ngafula");
 		Finished = true;
 	}
 

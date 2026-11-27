@@ -14,6 +14,11 @@ public class MissionManager : MonoBehaviour
 	public string boulevardName = "Boulevard du 30 Juin";
 	public float boulevardZ = 29f;
 
+	[Header("Communes (one row per block row, south to north, names split by commas)")]
+	public string[] communeRows;
+	public float communeStart = -174f;
+	public float communeStep = 58f;
+
 	[Header("Marker")]
 	public Transform marker;
 	public Transform markerRing;
@@ -95,7 +100,7 @@ public class MissionManager : MonoBehaviour
 					timeLeft = TimeFor(Pickup, Dropoff);
 					ShowMarker(Dropoff);
 					game.sound.Pickup();
-					game.ShowBig("PACKAGE PICKED UP", "Take it to " + Dropoff.placeName + "!", new Color(1f, 0.85f, 0.2f), 2.5f);
+					game.ShowBig("PACKAGE PICKED UP", "Take it to " + Dropoff.placeName + "!  ·  " + Lingala.Carry(Dropoff.placeName), new Color(1f, 0.85f, 0.2f), 2.5f);
 				}
 				break;
 
@@ -109,7 +114,7 @@ public class MissionManager : MonoBehaviour
 					waitTimer = waitSeconds;
 					ShowMarker(null);
 					game.sound.Passed();
-					game.ShowBig("MISSION PASSED", "+$" + Reward.ToString("N0"), new Color(0.45f, 1f, 0.45f), waitSeconds);
+					game.ShowBig("MISSION PASSED", "+$" + Reward.ToString("N0") + "  ·  " + Lingala.Passed.lingala, new Color(0.45f, 1f, 0.45f), waitSeconds);
 				}
 				else if (timeLeft <= 0)
 				{
@@ -118,7 +123,7 @@ public class MissionManager : MonoBehaviour
 					waitTimer = waitSeconds;
 					ShowMarker(null);
 					game.sound.Failed();
-					game.ShowBig("MISSION FAILED", "You were too slow.", new Color(1f, 0.35f, 0.3f), waitSeconds);
+					game.ShowBig("MISSION FAILED", "You were too slow.  ·  " + Lingala.TooSlow.lingala, new Color(1f, 0.35f, 0.3f), waitSeconds);
 				}
 				break;
 
@@ -186,7 +191,18 @@ public class MissionManager : MonoBehaviour
 		}
 	}
 
-	// The area name you see at the bottom right
+	// Which commune (neighborhood) of Kinshasa a point is in
+	public string CommuneAt(Vector3 p)
+	{
+		if (communeRows == null || communeRows.Length == 0)
+			return "Kinshasa";
+		int j = Mathf.Clamp(Mathf.RoundToInt((p.z - communeStart) / communeStep), 0, communeRows.Length - 1);
+		string[] row = communeRows[j].Split(',');
+		int i = Mathf.Clamp(Mathf.RoundToInt((p.x - communeStart) / communeStep), 0, row.Length - 1);
+		return row[i].Trim();
+	}
+
+	// The area name you see at the bottom right: the boulevard, a famous place, or the commune
 	public string ZoneName(Vector3 p)
 	{
 		// On the big boulevard you see its name, like a street sign
@@ -198,13 +214,13 @@ public class MissionManager : MonoBehaviour
 		{
 			Vector3 d = p - place.transform.position;
 			d.y = 0;
-			if (d.magnitude < place.radius && d.magnitude < bestDistance)
+			if (place.radius > 0 && d.magnitude < place.radius && d.magnitude < bestDistance)
 			{
 				bestDistance = d.magnitude;
 				best = place;
 			}
 		}
-		return best != null ? best.placeName : "Kinshasa";
+		return best != null ? best.placeName : CommuneAt(p);
 	}
 
 	void UpdateTexts()
@@ -226,12 +242,14 @@ public class MissionManager : MonoBehaviour
 		{
 			case Step.GoToPickup:
 				titleText.text = "MISSION " + (Completed + 1) + " · DELIVERY  ($" + Reward.ToString("N0") + ")";
-				missionText.text = "Go to the yellow marker at <b>" + Pickup.placeName + "</b> and pick up a package." + distance + tip;
+				missionText.text = "Go to the yellow marker at <b>" + Pickup.placeName + "</b> and pick up a package." + distance +
+					"\n<i><color=#ffd84d>" + Lingala.GoGet(Pickup.placeName) + "</color></i>" + tip;
 				timerText.text = "";
 				break;
 			case Step.Deliver:
 				titleText.text = "MISSION " + (Completed + 1) + " · DELIVERY  ($" + Reward.ToString("N0") + ")";
-				missionText.text = "Take the package to <b>" + Dropoff.placeName + "</b> before time runs out!" + distance + tip;
+				missionText.text = "Take the package to <b>" + Dropoff.placeName + "</b> before time runs out!" + distance +
+					"\n<i><color=#ffd84d>" + Lingala.Carry(Dropoff.placeName) + "</color></i>" + tip;
 				int s = Mathf.CeilToInt(timeLeft);
 				timerText.text = s / 60 + ":" + (s % 60).ToString("00");
 				timerText.color = timeLeft < 10f ? new Color(1f, 0.35f, 0.3f) : Color.white;

@@ -32,7 +32,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		foreach (Transform t in GameObject.Find("City").GetComponentsInChildren<Transform>())
 			if (t.name == "Building" || t.name == "Warehouse") buildings++;
 		Check("City is built (" + buildings + " buildings, " + CarController.All.Count + " cars, " + missions.places.Length + " places)",
-			buildings > 80 && CarController.All.Count >= 15 && missions.places.Length == 6);
+			buildings > 200 && CarController.All.Count >= 25 && missions.places.Length == 16);
 
 		game.StartGame();
 		yield return null;
@@ -196,12 +196,16 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		yield return null;
 		TrafficDriver stopper = tm.Drivers.Find(d => d != null && d.enabled);
 		CarController stopCar = stopper.GetComponent<CarController>();
-		ClearAround(new Vector3(-60f, 0, -147f), 40f, stopCar);
-		stopper.PlaceAt(1, 0, 1, 4f);   // southern street, going east
-		player.Teleport(new Vector3(-62f, 0.05f, -147.3f), 270f);
-		yield return new WaitForSeconds(3f);
+		Vector3 laneAhead = tm.LanePoint(1, 0, 1, 26f);   // southern street, going east
+		ClearAround(laneAhead, 40f, stopCar);
+		stopper.PlaceAt(1, 0, 1, 4f);
+		player.Teleport(new Vector3(laneAhead.x, 0.05f, laneAhead.z), 270f);
+		float honkWait = Time.time + 7f;
+		while (Time.time < honkWait && !IsLine(BubbleText(stopper.gameObject), Lingala.Honk))
+			yield return null;
 		float gap = Flat(stopCar.transform.position - player.transform.position);
 		Check("Traffic stops for people in the road (stopped " + gap.ToString("0.0") + " m away)", Mathf.Abs(stopCar.Speed) < 1f && gap > 2.2f && gap < 12f && stopper.Blocked);
+		Check("The waiting driver shouts in Lingala (\"" + BubbleText(stopper.gameObject) + "\")", IsLine(BubbleText(stopper.gameObject), Lingala.Honk));
 
 		// Taking a car from the traffic
 		player.Teleport(stopCar.transform.position - stopCar.transform.right * 2.4f, 0f);
@@ -211,11 +215,13 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		yield return null;
 		yield return null;
 		Check("E on a traffic car = you take it and the driver gets out", took && game.CurrentCar == stopCar && !stopper.enabled && Pedestrian.All.Count == peopleBefore + 1);
+		Pedestrian angryDriver = Pedestrian.All[Pedestrian.All.Count - 1];
+		Check("The driver shouts \"" + BubbleText(angryDriver.gameObject) + "\"", IsLine(BubbleText(angryDriver.gameObject), Lingala.Thief));
 		yield return new WaitForSeconds(0.3f);
 		Check("A new car joins the traffic, so the city stays busy (" + tm.ActiveCount + ")", tm.ActiveCount >= tm.carCount);
 
 		// ---- People ----
-		Check("People: " + Pedestrian.All.Count + " people in the city", Pedestrian.All.Count >= 40);
+		Check("People: " + Pedestrian.All.Count + " people in the city", Pedestrian.All.Count >= 60);
 		var before = new System.Collections.Generic.Dictionary<Pedestrian, Vector3>();
 		foreach (Pedestrian p in Pedestrian.All) before[p] = p.transform.position;
 		yield return new WaitForSeconds(1.5f);
@@ -241,6 +247,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		yield return new WaitForSeconds(1.7f);
 		stopCar.testThrottle = 0;
 		Check("People jump out of the way of a fast car (" + jumper.Dodges + " jump)", jumper.Dodges > 0 && !jumper.IsDown);
+		Check("...and shout \"" + BubbleText(jumper.gameObject) + "\"", IsLine(BubbleText(jumper.gameObject), Lingala.WatchOut));
 		jumper.testHold = false;
 
 		// A car that hits someone knocks them down; they get back up
@@ -255,6 +262,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		stopCar.testThrottle = 0;
 		stopCar.testBrake = true;
 		Check("A car that hits someone knocks them down", unlucky.IsDown && unlucky.Knockdowns == 1);
+		Check("...and they say \"" + BubbleText(unlucky.gameObject) + "\"", IsLine(BubbleText(unlucky.gameObject), Lingala.Hit));
 		yield return new WaitForSeconds(3.2f);
 		stopCar.testBrake = false;
 		Check("...and they get back up", !unlucky.IsDown);
@@ -294,14 +302,19 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		// Stay stopped: the police come and catch you
 		int moneyBefore = game.Money;
 		float closest = float.MaxValue;
-		float giveUp = Time.time + 40f;
+		float giveUp = Time.time + 50f;
+		string shout = "";
 		while (pm.Busts == 0 && Time.time < giveUp)
 		{
 			foreach (TrafficDriver d in pm.Police)
 				if (d != null && d.Chasing)
+				{
 					closest = Mathf.Min(closest, Flat(d.transform.position - stopCar.transform.position));
+					if (IsLine(BubbleText(d.gameObject), Lingala.Police)) shout = BubbleText(d.gameObject);
+				}
 			yield return null;
 		}
+		Check("Police shout in Lingala when they are close (\"" + shout + "\")", shout != "");
 		stopCar.testBrake = false;
 		Check("Police drive through the streets to you (closest " + closest.ToString("0.0") + " m)", closest < 8f);
 		Check("Caught while stopped = BUSTED (fine $" + (moneyBefore - game.Money) + "), stars gone, back at the start", pm.Busts == 1 && pm.Stars == 0 &&
@@ -344,6 +357,49 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		Check("The stolen police car is yours now (lights off, not in the police list)", !pm.Police.Contains(cop) && !cop.GetComponent<PoliceLights>().On);
 		pm.ResetWanted();
 
+		// ================= Version 4: Kinshasa communes and Lingala =================
+		string[] communes = { "Gombe", "Matonge", "Lemba", "Ngiri-Ngiri", "Bandal", "Bumbu", "Selembao", "Mont-Ngafula", "Kintambo", "Limete", "Kalamu", "Lingwala" };
+		int found = 0;
+		string missing = "";
+		foreach (string name in communes)
+		{
+			Place place = System.Array.Find(missions.places, pl => pl.placeName == name);
+			if (place != null && missions.CommuneAt(place.transform.position) == name) found++;
+			else missing += name + " ";
+		}
+		Check("All 12 communes are in the city, each with a mission place (" + found + "/12) " + missing, found == 12);
+
+		if (game.InCar) game.ToggleCar();
+		yield return null;
+		player.Teleport(new Vector3(58f, 0.05f, -94.6f), 0f);   // a sidewalk in Lemba
+		yield return null;
+		yield return null;
+		Check("Entering a commune: \"" + game.areaBanner.text + "\" / \"" + game.areaBannerSub.text + "\"", game.areaBanner.text == "Boyei malamu na LEMBA" && game.areaBannerSub.text == "Welcome to Lemba");
+		Check("Area name at the bottom right says Lemba (" + game.zoneText.text + ")", game.zoneText.text == "Lemba");
+
+		// Talk to someone with T
+		Pedestrian friend = Pedestrian.All.Find(p => !p.IsDown && !p.Crossing && !p.carriesBasin);
+		friend.testHold = true;
+		friend.testNoDodge = true;
+		friend.transform.position = player.transform.position + new Vector3(1.8f, 0.01f, 0.5f);
+		ClearAround(player.transform.position, 8f);
+		yield return null;
+		yield return null;
+		Check("Hint: \"" + game.hintText.text + "\"", game.hintText.text.Contains("Press T to talk") && game.hintText.text.Contains("Loba"));
+		Pedestrian talked = game.TalkToNearest();
+		yield return null;
+		Check("T = you say \"" + BubbleText(player.gameObject) + "\"", talked == friend && BubbleText(player.gameObject) == "Mbote!");
+		yield return new WaitForSeconds(1.1f);
+		Check("...and they answer \"" + BubbleText(friend.gameObject) + "\" and stop to look at you", friend.Talking && IsLine(BubbleText(friend.gameObject), Lingala.Answers[0]));
+		yield return new WaitForSeconds(0.3f);
+		game.TalkToNearest();
+		yield return new WaitForSeconds(1.1f);
+		Check("T again = the next line (\"" + BubbleText(player.gameObject) + "\" -> \"" + BubbleText(friend.gameObject) + "\")",
+			BubbleText(player.gameObject) == "Sango nini?" && IsLine(BubbleText(friend.gameObject), Lingala.Answers[1]));
+		friend.testHold = false;
+		friend.testNoDodge = false;
+		Check("The mission says it in Lingala too", missions.missionText.text.Contains("Kende kozwa paquet") || missions.missionText.text.Contains("Mema yango"));
+
 		Debug.Log("TOSAKANA-CHECK DONE: " + passed + " passed, " + failed + " failed");
 	}
 
@@ -369,6 +425,19 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		float bz = -116f + Mathf.Round((p.z + 116f) / 58f) * 58f;
 		float dx = Mathf.Abs(p.x - bx), dz = Mathf.Abs(p.z - bz);
 		return Mathf.Max(dx, dz) > 19.5f && Mathf.Max(dx, dz) < 23f;
+	}
+
+	static string BubbleText(GameObject who)
+	{
+		SpeechBubble b = who.GetComponent<SpeechBubble>();
+		return b != null && b.Showing ? b.Text : "";
+	}
+
+	static bool IsLine(string text, Lingala.Line[] lines)
+	{
+		foreach (Lingala.Line l in lines)
+			if (l.lingala == text) return true;
+		return false;
 	}
 
 	static int StarsLit(PoliceManager pm)

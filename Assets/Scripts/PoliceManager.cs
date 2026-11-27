@@ -215,7 +215,7 @@ public class PoliceManager : MonoBehaviour
 		Stars = 0;
 		escapeTimer = 0;
 		bustTimer = 0;
-		game.ShowBig("YOU LOST THE POLICE", "", new Color(0.45f, 0.75f, 1f), 2.5f);
+		game.ShowBig("YOU LOST THE POLICE", Lingala.Escaped.lingala + "  (" + Lingala.Escaped.english + ")", new Color(0.45f, 0.75f, 1f), 2.5f);
 		SendExtraPoliceAway();
 		UpdateStars();
 	}
@@ -232,7 +232,7 @@ public class PoliceManager : MonoBehaviour
 			game.ToggleCar();
 		game.player.Teleport(game.RespawnPoint, 90f);
 		game.cameraRig.SetYaw(90f);
-		game.ShowBig("BUSTED", fine > 0 ? "Fine: -$" + fine : "", new Color(1f, 0.3f, 0.3f), 3.5f);
+		game.ShowBig("BUSTED", (fine > 0 ? "Fine: -$" + fine + "  ·  " : "") + Lingala.Busted.lingala, new Color(1f, 0.3f, 0.3f), 3.5f);
 		game.sound.Failed();
 		SendExtraPoliceAway();
 		// The police that caught you go back to patrol somewhere else

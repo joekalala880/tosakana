@@ -26,6 +26,8 @@ public class TosakanaGame : MonoBehaviour
 	public Text speedText;
 	public Text bigText;
 	public Text bigSubText;
+	public Text areaBanner;
+	public Text areaBannerSub;
 
 	public State CurrentState { get; private set; }
 	public bool IsPlaying { get { return CurrentState == State.Playing; } }
@@ -35,7 +37,10 @@ public class TosakanaGame : MonoBehaviour
 	public Transform Focus { get { return InCar ? CurrentCar.transform : player.transform; } }
 	public Vector3 RespawnPoint { get; private set; }   // where you start again after BUSTED
 
-	float bigTimer, bigLength;
+	float bigTimer, bigLength, bannerTimer;
+	int talkIndex;
+	string lastCommune = "";
+	public string CurrentCommune { get { return lastCommune; } }
 	Color bigColor;
 
 	void Awake()
@@ -74,6 +79,8 @@ public class TosakanaGame : MonoBehaviour
 			ToggleCar();
 		if (InCar && Input.GetKeyDown(KeyCode.H))
 			sound.Horn();
+		if (!InCar && Input.GetKeyDown(KeyCode.T))
+			TalkToNearest();
 
 		// Esc frees the mouse, a click takes it back
 		if (Input.GetKeyDown(KeyCode.Escape))
@@ -146,12 +153,16 @@ public class TosakanaGame : MonoBehaviour
 		CarController nearest = NearestCar(player.transform.position, enterCarDistance);
 		if (nearest == null)
 			return false;
-		// Taking a car from the traffic: the driver gets out and walks away
+		// Taking a car from the traffic: the driver gets out, shouts and walks away
 		TrafficDriver driver = nearest.GetComponent<TrafficDriver>();
 		if (driver != null && driver.enabled)
 		{
 			if (PedestrianManager.Instance != null)
-				PedestrianManager.Instance.SpawnDriver(ExitSpot(nearest), nearest.transform.eulerAngles.y - 90f);
+			{
+				Pedestrian angry = PedestrianManager.Instance.SpawnDriver(ExitSpot(nearest), nearest.transform.eulerAngles.y - 90f);
+				if (angry != null)
+					SpeechBubble.Say(angry.gameObject, Lingala.Pick(Lingala.Thief), 3f);
+			}
 			PoliceManager police = PoliceManager.Instance;
 			if (police != null)
 			{
@@ -183,6 +194,48 @@ public class TosakanaGame : MonoBehaviour
 		return t.position + Vector3.up * 2f;
 	}
 
+	// T: say something in Lingala to the nearest person, and they answer
+	public Pedestrian TalkToNearest()
+	{
+		if (!IsPlaying || InCar)
+			return null;
+		Pedestrian best = null;
+		float bestDistance = 4.5f;
+		foreach (Pedestrian p in Pedestrian.All)
+		{
+			if (p.IsDown)
+				continue;
+			float d = Vector3.Distance(p.transform.position, player.transform.position);
+			if (d < bestDistance)
+			{
+				bestDistance = d;
+				best = p;
+			}
+		}
+		if (best == null)
+			return null;
+		int line = talkIndex % Lingala.PlayerSays.Length;
+		talkIndex++;
+		SpeechBubble.Say(player.gameObject, Lingala.PlayerSays[line], 2.5f, 2.5f, 0.7f);
+		StartCoroutine(AnswerSoon(best, line));
+		return best;
+	}
+
+	System.Collections.IEnumerator AnswerSoon(Pedestrian p, int line)
+	{
+		yield return new WaitForSeconds(0.8f);
+		if (p != null && !p.IsDown)
+			p.Answer(line);
+	}
+
+	Pedestrian NearestPerson(float maxDistance)
+	{
+		foreach (Pedestrian p in Pedestrian.All)
+			if (!p.IsDown && Vector3.Distance(p.transform.position, player.transform.position) < maxDistance)
+				return p;
+		return null;
+	}
+
 	public void AddMoney(int amount)
 	{
 		Money += amount;
@@ -204,13 +257,35 @@ public class TosakanaGame : MonoBehaviour
 		zoneText.text = missions.ZoneName(Focus.position);
 
 		if (!InCar && NearestCar(player.transform.position, enterCarDistance) != null)
-			hintText.text = "Press E to get in the car";
+			hintText.text = "Press E to get in the car  ·  <i>" + Lingala.GetInCar.lingala + "</i>";
+		else if (!InCar && NearestPerson(4.5f) != null)
+			hintText.text = "Press T to talk  ·  <i>" + Lingala.Talk.lingala + "</i>";
 		else if (InCar && Mathf.Abs(CurrentCar.Speed) < 1f)
 			hintText.text = "Press E to get out   ·   H = horn";
 		else
 			hintText.text = "";
 
 		speedText.text = InCar ? Mathf.RoundToInt(Mathf.Abs(CurrentCar.Speed) * 3.6f) + " km/h" : "";
+
+		// Entering a new commune: "Boyei malamu na LEMBA" (Welcome to Lemba)
+		string commune = missions.CommuneAt(Focus.position);
+		if (commune != lastCommune)
+		{
+			lastCommune = commune;
+			if (areaBanner != null)
+			{
+				areaBanner.text = Lingala.Welcome.lingala + " " + commune.ToUpper();
+				areaBannerSub.text = Lingala.Welcome.english + " " + commune;
+				bannerTimer = 3.5f;
+			}
+		}
+		if (areaBanner != null)
+		{
+			bannerTimer -= Time.deltaTime;
+			float a = Mathf.Clamp01(Mathf.Min((3.5f - bannerTimer) / 0.4f, bannerTimer / 0.8f));
+			areaBanner.color = new Color(1f, 0.86f, 0.25f, a);
+			areaBannerSub.color = new Color(1f, 1f, 1f, a * 0.9f);
+		}
 
 		if (bigTimer > 0)
 		{

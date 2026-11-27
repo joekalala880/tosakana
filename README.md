@@ -15,6 +15,7 @@ before time runs out. Every job pays money.
 | ![Delivery mission](Docs/5_package_picked_up.jpg) | ![Place du 30 Juin and the DRC flag](Docs/10_place_du_30_juin_flag.jpg) |
 | ![Traffic at the Grand Marché](Docs/12_traffic_at_crossroads.jpg) | ![A seller carrying a basin](Docs/13_basin_seller.jpg) |
 | ![Police chase with 3 wanted stars](Docs/14_police_chase.jpg) | ![BUSTED](Docs/15_busted.jpg) |
+| ![Talking in Lingala in Lemba](Docs/16_talking_in_lingala.jpg) | ![Mont-Ngafula](Docs/18_bumbu_and_mont_ngafula.jpg) |
 
 ## Places in the city
 - **Place du 30 Juin** – the square with the DRC flag (you start here)
@@ -60,6 +61,19 @@ before time runs out. Every job pays money.
 - **Escape:** after the police find you, get far away from all of them. The stars blink while they search,
   then you see "YOU LOST THE POLICE"
 - Police cars show as red and blue dots on the mini-map
+
+## Version 4 adds: Kinshasa communes and Lingala 🇨🇩
+- **A bigger city with 12 communes**, roughly where they really are:
+  Gombe, Kintambo and Limete by the river; Lingwala, Ngiri-Ngiri, Bandal, Kalamu, Matonge in the middle;
+  Bumbu, Selembao and Lemba further south; Mont-Ngafula with green land and mango trees
+- Each commune has its own look (Gombe towers, Bumbu and Selembao small houses with tin roofs, bright Matonge, Limete warehouses)
+- Each commune has a sign and a mission place. When you enter one: **"Boyei malamu na LEMBA"** (Welcome to Lemba)
+- **People speak Lingala** in speech bubbles, with the English under each line:
+  - Press **T** near someone to talk: *"Mbote!"* → *"Mbote na yo, ndeko!"*
+  - People say *"Keba!"* when a car comes, *"Moyibi!"* when you take a car, and *"Ozali liboma?"* if you hit them
+  - Drivers shout *"Pesa nzela!"* and the police shout *"Kanga ye!"*
+- Missions and big messages have Lingala too (*"Kende kozwa paquet na Gombe"*, *"Matondo!"*, *"Bakangi yo!"*)
+- All the Lingala is in one file, `Assets/Scripts/Lingala.cs`, so it is easy to fix or add lines
 
 ## How to open
 Open the folder in Unity Hub (Unity 2022.3). The game is in `Assets/Scenes/Main.unity`. Press ▶ Play.

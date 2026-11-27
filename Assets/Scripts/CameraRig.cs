@@ -42,7 +42,7 @@ public class CameraRig : MonoBehaviour
 		{
 			yaw += dt * 5f;
 			Vector3 center = new Vector3(0, 10, 0);
-			transform.position = center + Quaternion.Euler(0, yaw, 0) * new Vector3(0, 80, -165);
+			transform.position = center + Quaternion.Euler(0, yaw, 0) * new Vector3(0, 110, -250);
 			transform.LookAt(center);
 			return;
 		}

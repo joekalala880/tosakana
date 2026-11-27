@@ -15,8 +15,9 @@ public class TrafficManager : MonoBehaviour
 	public int carCount = 18;
 	public float cruiseSpeed = 13f;     // m/s (about 47 km/h)
 	public float laneOffset = 2.3f;     // distance from the middle of the street
-	public int gridSize = 6;            // crossroads per side
-	public float gridStart = -145f;
+	public int gridSizeX = 8;           // crossroads west to east
+	public int gridSizeZ = 7;           // crossroads south to north
+	public float gridStart = -203f;
 	public float gridStep = 58f;
 
 	public readonly List<TrafficDriver> Drivers = new List<TrafficDriver>();
@@ -52,7 +53,7 @@ public class TrafficManager : MonoBehaviour
 	public static Vector2Int Dir(int heading) { return Dirs[(heading % 4 + 4) % 4]; }
 	public static Vector3 Dir3(int heading) { Vector2Int d = Dir(heading); return new Vector3(d.x, 0, d.y); }
 	public static Vector3 Right(int heading) { Vector3 d = Dir3(heading); return new Vector3(d.z, 0, -d.x); }
-	public bool Valid(int a, int b) { return a >= 0 && b >= 0 && a < gridSize && b < gridSize; }
+	public bool Valid(int a, int b) { return a >= 0 && b >= 0 && a < gridSizeX && b < gridSizeZ; }
 
 	// A point in the right lane, "t" meters after crossroad (a, b), going "heading"
 	public Vector3 LanePoint(int a, int b, int heading, float t)
@@ -70,8 +71,8 @@ public class TrafficManager : MonoBehaviour
 	{
 		for (int tries = 0; tries < 80; tries++)
 		{
-			a = Random.Range(0, gridSize);
-			b = Random.Range(0, gridSize);
+			a = Random.Range(0, gridSizeX);
+			b = Random.Range(0, gridSizeZ);
 			h = Random.Range(0, 4);
 			t = Random.Range(10f, gridStep - 12f);
 			Vector2Int d = Dir(h);

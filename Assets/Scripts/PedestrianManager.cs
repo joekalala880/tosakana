@@ -6,9 +6,10 @@ public class PedestrianManager : MonoBehaviour
 	public static PedestrianManager Instance { get; private set; }
 
 	public GameObject pedestrianPrefab;
-	public int count = 45;
-	public int blocks = 5;
-	public float firstBlock = -116f;
+	public int count = 70;
+	public int blocksX = 7;
+	public int blocksZ = 6;
+	public float firstBlock = -174f;
 	public float blockStep = 58f;
 
 	static readonly Color[] Clothes =
@@ -32,7 +33,7 @@ public class PedestrianManager : MonoBehaviour
 		int made = 0, tries = 0;
 		while (made < count && tries++ < count * 5)
 		{
-			Vector3 c = BlockCenter(Random.Range(0, blocks), Random.Range(0, blocks));
+			Vector3 c = BlockCenter(Random.Range(0, blocksX), Random.Range(0, blocksZ));
 			Pedestrian p = Make();
 			if (p == null)
 				return;
@@ -47,7 +48,7 @@ public class PedestrianManager : MonoBehaviour
 	}
 
 	public Vector3 BlockCenter(int i, int j) { return new Vector3(firstBlock + i * blockStep, 0, firstBlock + j * blockStep); }
-	public bool ValidBlock(int i, int j) { return i >= 0 && j >= 0 && i < blocks && j < blocks; }
+	public bool ValidBlock(int i, int j) { return i >= 0 && j >= 0 && i < blocksX && j < blocksZ; }
 
 	public bool BlockIndex(Vector3 center, out int i, out int j)
 	{
@@ -58,8 +59,8 @@ public class PedestrianManager : MonoBehaviour
 
 	public Vector3 NearestBlockCenter(Vector3 p)
 	{
-		int i = Mathf.Clamp(Mathf.RoundToInt((p.x - firstBlock) / blockStep), 0, blocks - 1);
-		int j = Mathf.Clamp(Mathf.RoundToInt((p.z - firstBlock) / blockStep), 0, blocks - 1);
+		int i = Mathf.Clamp(Mathf.RoundToInt((p.x - firstBlock) / blockStep), 0, blocksX - 1);
+		int j = Mathf.Clamp(Mathf.RoundToInt((p.z - firstBlock) / blockStep), 0, blocksZ - 1);
 		return BlockCenter(i, j);
 	}
 

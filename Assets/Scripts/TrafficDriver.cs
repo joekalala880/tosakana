@@ -21,7 +21,7 @@ public class TrafficDriver : MonoBehaviour
 	int fromA, fromB, toA, toB, heading;
 	int nextHeading = -1;
 	bool direct;
-	float blockedTime, ignoreCarsTimer, stuckTime, honkCooldown;
+	float blockedTime, ignoreCarsTimer, stuckTime, honkCooldown, shoutCooldown;
 	const float TurnSpeed = 6.5f;
 	const float ChaseSpeed = 24f;
 	const float ChaseTurnSpeed = 9f;
@@ -97,6 +97,12 @@ public class TrafficDriver : MonoBehaviour
 			gap.y = 0;
 			if (gap.magnitude < DirectChaseDistance)
 			{
+				shoutCooldown -= Time.deltaTime;
+				if (shoutCooldown <= 0)
+				{
+					shoutCooldown = 5f;
+					SpeechBubble.Say(gameObject, Lingala.Pick(Lingala.Police), 2.5f, 3.2f);
+				}
 				direct = true;
 				DriveStraightAt(target, gap.magnitude, speed);
 				return;
@@ -177,6 +183,7 @@ public class TrafficDriver : MonoBehaviour
 				honkCooldown = 6f;
 				if (game != null)
 					game.sound.HornAt(pos);
+				SpeechBubble.Say(gameObject, Lingala.Pick(Lingala.Honk), 2.5f, 3f);
 			}
 			if (blockedTime > 5f)
 			{
@@ -216,7 +223,6 @@ public class TrafficDriver : MonoBehaviour
 	// After driving straight at you, find the street we are on again
 	void Relocate()
 	{
-		int size = manager.gridSize;
 		int h = ((Mathf.RoundToInt(transform.eulerAngles.y / 90f) % 4) + 4) % 4;
 		Vector3 p = transform.position;
 		float gx = (p.x - manager.gridStart) / manager.gridStep;
@@ -224,13 +230,13 @@ public class TrafficDriver : MonoBehaviour
 		int a, b;
 		if (h == 0 || h == 2)
 		{
-			a = Mathf.Clamp(Mathf.RoundToInt(gx), 0, size - 1);
-			b = h == 0 ? Mathf.Clamp(Mathf.FloorToInt(gz), 0, size - 2) : Mathf.Clamp(Mathf.CeilToInt(gz), 1, size - 1);
+			a = Mathf.Clamp(Mathf.RoundToInt(gx), 0, manager.gridSizeX - 1);
+			b = h == 0 ? Mathf.Clamp(Mathf.FloorToInt(gz), 0, manager.gridSizeZ - 2) : Mathf.Clamp(Mathf.CeilToInt(gz), 1, manager.gridSizeZ - 1);
 		}
 		else
 		{
-			b = Mathf.Clamp(Mathf.RoundToInt(gz), 0, size - 1);
-			a = h == 1 ? Mathf.Clamp(Mathf.FloorToInt(gx), 0, size - 2) : Mathf.Clamp(Mathf.CeilToInt(gx), 1, size - 1);
+			b = Mathf.Clamp(Mathf.RoundToInt(gz), 0, manager.gridSizeZ - 1);
+			a = h == 1 ? Mathf.Clamp(Mathf.FloorToInt(gx), 0, manager.gridSizeX - 2) : Mathf.Clamp(Mathf.CeilToInt(gx), 1, manager.gridSizeX - 1);
 		}
 		Init(manager, a, b, h);
 	}
