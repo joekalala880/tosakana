@@ -29,6 +29,8 @@
   .rec.on { background: #e8862a; }
   .play { background: #343b48; }
   .play:disabled { opacity: .35; cursor: default; }
+  .microw { margin-top: 8px; color: var(--muted); font-size: 14px; }
+  select { font: inherit; font-size: 14px; padding: 5px 8px; border-radius: 6px; background: var(--panel); color: var(--text); border: 1px solid var(--line); max-width: 70%; }
 </style>
 </head>
 <body>
@@ -40,6 +42,7 @@
       4. When you are done (or anytime), in Unity click <b>Tools → Tosakana → Import Voices from Downloads</b>.
       &nbsp; Recorded here: <span class="count" id="count">0</span> / <span id="total">0</span>
     </p>
+    <div class="microw">Microphone: <select id="mic"><option value="">(click a Record button first)</option></select></div>
     <div id="status">Click a Record button. Chrome will ask to use the microphone: click <b>Allow</b>.</div>
     <div id="meter"><div id="bar"></div></div>
   </div>
@@ -79,23 +82,70 @@ function render() {
   });
 }
 
+let micId = '';
+let meterStarted = false;
+
+// Use the microphone picked in the menu. The Mac's own microphone is chosen first,
+// because a phone microphone (Continuity) can disconnect.
 async function ensureMic() {
-  if (stream) return;
-  stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-  ctx = new AudioContext();
+  if (stream && stream.getAudioTracks().some(t => t.readyState === 'live')) return;
+  await openMic();
+}
+
+async function openMic() {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  const audio = { echoCancellation: true, noiseSuppression: true };
+  if (micId) audio.deviceId = { exact: micId };
+  stream = await navigator.mediaDevices.getUserMedia({ audio });
+  await fillMicList();
+  if (!micId) {
+    const devices = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
+    const builtIn = devices.find(d => /macbook|built-in|intern/i.test(d.label));
+    const used = stream.getAudioTracks()[0].getSettings().deviceId;
+    if (builtIn && builtIn.deviceId !== used) { micId = builtIn.deviceId; return openMic(); }
+    micId = used || '';
+    document.getElementById('mic').value = micId;
+  }
+  if (!ctx) ctx = new AudioContext();
   const src = ctx.createMediaStreamSource(stream);
   analyser = ctx.createAnalyser();
   analyser.fftSize = 1024;
   src.connect(analyser);
-  const d = new Float32Array(analyser.fftSize);
-  (function loop() {
-    analyser.getFloatTimeDomainData(d);
-    let p = 0;
-    for (const v of d) p = Math.max(p, Math.abs(v));
-    document.getElementById('bar').style.width = Math.min(100, p * 250) + '%';
-    requestAnimationFrame(loop);
-  })();
+  stream.getAudioTracks()[0].onended = () => status('The microphone disconnected. Pick another one in the <b>Microphone</b> menu above.');
+  if (!meterStarted) {
+    meterStarted = true;
+    const d = new Float32Array(1024);
+    (function loop() {
+      if (analyser) {
+        analyser.getFloatTimeDomainData(d);
+        let p = 0;
+        for (const v of d) p = Math.max(p, Math.abs(v));
+        document.getElementById('bar').style.width = Math.min(100, p * 250) + '%';
+      }
+      requestAnimationFrame(loop);
+    })();
+  }
 }
+
+async function fillMicList() {
+  const sel = document.getElementById('mic');
+  const devices = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput' && d.deviceId !== 'default');
+  sel.innerHTML = '';
+  for (const d of devices) {
+    const o = document.createElement('option');
+    o.value = d.deviceId;
+    o.textContent = d.label || 'Microphone';
+    sel.appendChild(o);
+  }
+  if (micId) sel.value = micId;
+}
+
+document.getElementById('mic').onchange = async e => {
+  micId = e.target.value;
+  try { await openMic(); status('Using <b>' + escapeHtml(e.target.selectedOptions[0].textContent) + '</b>. Say something: the green bar should move.'); }
+  catch (err) { status('That microphone can\'t be used (' + err.name + '). Pick another one.'); }
+};
+navigator.mediaDevices.addEventListener('devicechange', () => { if (stream) fillMicList(); });
 
 async function toggle(i) {
   try { await ensureMic(); }
