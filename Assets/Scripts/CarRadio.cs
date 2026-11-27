@@ -13,7 +13,10 @@ using UnityEngine.UI;
 public class CarRadio : MonoBehaviour
 {
 	public Text radioText;
-	[Range(0, 1)] public float volume = 0.45f;
+	[Range(0, 1)] public float musicVolume = 0.3f;          // music volume
+	[Range(0, 1)] public float duckedVolume = 0.08f;   // while someone talks, so you hear the voices
+	[Range(0, 100)] public int spotifyVolume = 40;     // Spotify app volume while you drive
+	[Range(0, 100)] public int spotifyDucked = 12;     // Spotify volume while someone talks
 
 	public class Station
 	{
@@ -39,7 +42,7 @@ public class CarRadio : MonoBehaviour
 	{
 		source = gameObject.AddComponent<AudioSource>();
 		source.spatialBlend = 0f;
-		source.volume = volume;
+		source.volume = musicVolume;
 		source.playOnAwake = false;
 
 		Station own = new Station { name = "Tosakana FM" };
@@ -71,6 +74,8 @@ public class CarRadio : MonoBehaviour
 	}
 
 	bool spotifyPlaying;
+	int spotifyVolumeBefore = -1;   // your own Spotify volume, put back when you get out
+	int spotifySetTo = -1;
 	float nextTrackCheck;
 	volatile string spotifyTrack;
 
@@ -101,6 +106,9 @@ public class CarRadio : MonoBehaviour
 	void SpotifyPlay()
 	{
 		source.Stop();
+		if (spotifyVolumeBefore < 0)
+			AskSpotify("sound volume", v => { int n; if (int.TryParse(v, out n)) spotifyVolumeBefore = n; });
+		spotifySetTo = -1;
 		AskSpotify("play");
 		spotifyPlaying = true;
 		On = true;
@@ -115,6 +123,9 @@ public class CarRadio : MonoBehaviour
 		if (!spotifyPlaying)
 			return;
 		AskSpotify("pause");
+		if (spotifyVolumeBefore >= 0)
+			AskSpotify("set sound volume to " + spotifyVolumeBefore);
+		spotifyVolumeBefore = -1;
 		spotifyPlaying = false;
 	}
 
@@ -132,6 +143,18 @@ public class CarRadio : MonoBehaviour
 			source.Stop();
 			SpotifyPause();
 			On = false;
+		}
+		// Quieter music while someone talks, so you always hear the voices
+		bool talking = Voice.Busy;
+		source.volume = Mathf.MoveTowards(source.volume, talking ? duckedVolume : musicVolume, Time.deltaTime * 1.5f);
+		if (spotifyPlaying)
+		{
+			int want = talking ? spotifyDucked : spotifyVolume;
+			if (want != spotifySetTo)
+			{
+				spotifySetTo = want;
+				AskSpotify("set sound volume to " + want);
+			}
 		}
 		// Show the Spotify song name when it changes
 		if (spotifyPlaying && Time.time > nextTrackCheck)
@@ -180,7 +203,7 @@ public class CarRadio : MonoBehaviour
 		song = ((i % st.songs.Count) + st.songs.Count) % st.songs.Count;
 		AudioClip clip = st.songs[song];
 		source.clip = clip;
-		source.volume = volume;
+		source.volume = musicVolume;
 		source.Play();
 		On = true;
 		songEnds = Time.time + clip.length;
