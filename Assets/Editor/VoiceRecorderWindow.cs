@@ -83,6 +83,13 @@ public class VoiceRecorderWindow : EditorWindow
 			if (IsRecorded(kv.Value)) done++;
 
 		EditorGUILayout.LabelField("Tosakana voices", EditorStyles.boldLabel);
+		// If Unity can't hear the microphone on this Mac, record in Chrome instead
+		EditorGUILayout.BeginHorizontal();
+		if (GUILayout.Button("🎙  Record in Chrome instead", GUILayout.Height(30)))
+			VoiceChromeRecorder.OpenInChrome();
+		if (GUILayout.Button("⬇  Import recordings from Downloads", GUILayout.Height(30)))
+			VoiceChromeRecorder.ImportFromDownloads();
+		EditorGUILayout.EndHorizontal();
 		EditorGUILayout.HelpBox("Record each line in Lingala with your voice. Click ● Record, say the line, then click ■ Stop. " +
 			"Click ▶ to listen, ● again to record it again.\n✔ = your voice.  PC = computer voice (your recording replaces it).  Empty = a soft murmur plays.", MessageType.Info);
 
@@ -106,8 +113,8 @@ public class VoiceRecorderWindow : EditorWindow
 		}
 		if (silentMic)
 		{
-			EditorGUILayout.HelpBox("Unity hears total silence from the microphone. Your Mac is probably not letting Unity use it.\n" +
-				"1. Click the button below.  2. Turn ON \"Unity\" in the Microphone list.  3. Quit Unity and open it again.", MessageType.Error);
+			EditorGUILayout.HelpBox("Unity hears total silence from the microphone. On some Macs Unity can't use the microphone at all.\n" +
+				"Easiest fix: click \"Record in Chrome instead\" at the top, record there, then click \"Import recordings from Downloads\".", MessageType.Error);
 			if (GUILayout.Button("Ask the Mac for the microphone again", GUILayout.Height(28)))
 				AskForMicrophone();
 			if (GUILayout.Button("Open Mac microphone settings", GUILayout.Height(28)))

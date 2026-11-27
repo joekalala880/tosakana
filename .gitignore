@@ -24,3 +24,6 @@
 # Recordings
 *.mov
 *.mp4
+
+# Made by Tools > Tosakana > Record Voices in Chrome
+Voice Recorder.html
