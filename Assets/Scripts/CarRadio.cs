@@ -7,6 +7,9 @@ using UnityEngine.UI;
 //    Assets/Resources/Radio/Rumba      Assets/Resources/Radio/Ndombolo      Assets/Resources/Radio/Mix
 // Those folders are not put on GitHub (the songs belong to the artists).
 // "Tosakana FM" always works: it plays rumba that the game makes itself.
+// "Spotify" (only on a Mac with the Spotify app): the game tells YOUR Spotify app to play when you get in a car
+// and to pause when you get out. Your playlists, legal, nothing copied. The first time, macOS asks
+// "Unity wants to control Spotify" - click OK.
 public class CarRadio : MonoBehaviour
 {
 	public Text radioText;
@@ -15,6 +18,7 @@ public class CarRadio : MonoBehaviour
 	public class Station
 	{
 		public string name;
+		public bool spotify;
 		public List<AudioClip> songs = new List<AudioClip>();
 	}
 
@@ -51,7 +55,71 @@ public class CarRadio : MonoBehaviour
 			st.songs.AddRange(clips);
 			Stations.Add(st);
 		}
+		if (SpotifyInstalled())
+			Stations.Insert(1, new Station { name = "Spotify" , spotify = true });
 	}
+
+	// ---------- Spotify (Mac app) ----------
+	public static bool SpotifyInstalled()
+	{
+		if (Application.isBatchMode)
+			return false;   // never during the automatic tests
+		if (Application.platform != RuntimePlatform.OSXEditor && Application.platform != RuntimePlatform.OSXPlayer)
+			return false;
+		string home = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
+		return System.IO.Directory.Exists("/Applications/Spotify.app") || System.IO.Directory.Exists(home + "/Applications/Spotify.app");
+	}
+
+	bool spotifyPlaying;
+	float nextTrackCheck;
+	volatile string spotifyTrack;
+
+	static void AskSpotify(string command, System.Action<string> answer = null)
+	{
+		System.Threading.ThreadPool.QueueUserWorkItem(_ =>
+		{
+			try
+			{
+				var psi = new System.Diagnostics.ProcessStartInfo("/usr/bin/osascript", "-e \"tell application \\\"Spotify\\\" to " + command + "\"")
+				{
+					UseShellExecute = false,
+					RedirectStandardOutput = true,
+					RedirectStandardError = true,
+					CreateNoWindow = true
+				};
+				using (var p = System.Diagnostics.Process.Start(psi))
+				{
+					string output = p.StandardOutput.ReadToEnd().Trim();
+					p.WaitForExit(4000);
+					if (answer != null) answer(output);
+				}
+			}
+			catch { }
+		});
+	}
+
+	void SpotifyPlay()
+	{
+		source.Stop();
+		AskSpotify("play");
+		spotifyPlaying = true;
+		On = true;
+		NowPlaying = "your Spotify music";
+		songEnds = float.MaxValue;
+		textTimer = 5f;
+		nextTrackCheck = Time.time + 1f;
+	}
+
+	void SpotifyPause()
+	{
+		if (!spotifyPlaying)
+			return;
+		AskSpotify("pause");
+		spotifyPlaying = false;
+	}
+
+	void OnDisable() { SpotifyPause(); }
+	void OnApplicationQuit() { SpotifyPause(); }
 
 	void Update()
 	{
@@ -62,7 +130,20 @@ public class CarRadio : MonoBehaviour
 		if (!inCar && wasInCar)
 		{
 			source.Stop();
+			SpotifyPause();
 			On = false;
+		}
+		// Show the Spotify song name when it changes
+		if (spotifyPlaying && Time.time > nextTrackCheck)
+		{
+			nextTrackCheck = Time.time + 4f;
+			AskSpotify("(artist of current track) & \\\" - \\\" & (name of current track)", t => spotifyTrack = t);
+		}
+		string track = spotifyTrack;
+		if (spotifyPlaying && !string.IsNullOrEmpty(track) && track != NowPlaying)
+		{
+			NowPlaying = track;
+			textTimer = 5f;
 		}
 		wasInCar = inCar;
 
@@ -81,6 +162,7 @@ public class CarRadio : MonoBehaviour
 
 	public void NextStation()
 	{
+		SpotifyPause();
 		StationIndex = (StationIndex + 1) % Stations.Count;
 		PlaySong(Random.Range(0, Mathf.Max(1, Current.songs.Count)));
 	}
@@ -88,6 +170,11 @@ public class CarRadio : MonoBehaviour
 	void PlaySong(int i)
 	{
 		Station st = Current;
+		if (st != null && st.spotify)
+		{
+			SpotifyPlay();
+			return;
+		}
 		if (st == null || st.songs.Count == 0)
 			return;
 		song = ((i % st.songs.Count) + st.songs.Count) % st.songs.Count;

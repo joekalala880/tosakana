@@ -131,6 +131,7 @@ before time runs out. Every job pays money.
 - **Day and night**: the sun moves across the sky (one day = 12 minutes). Sunset turns the sky orange; at night the windows glow, **street lamps** shine on the boulevard, and your car turns on its **headlights**. A clock shows the time
 - **Car radio**: it plays when you get in a car. **N** = next station. *Tosakana FM* plays rumba (sebene guitar, bass, drums) that the game makes itself
 - **Your own music**: put MP3 songs you own (for example Fally Ipupa, Koffi Olomide, JB Mpiana) in `Assets/Resources/Radio/Rumba`, `Ndombolo` or `Mix`. They become the stations *Kin Rumba FM*, *Ndombolo Radio* and *Mboka Mix*. This folder is **not** put on GitHub, because the songs belong to the artists
+- **Spotify station** (Mac, with the Spotify app installed): when you pick *Spotify* with **N**, the game tells your own Spotify app to play, and pauses it when you get out of the car. The song name shows on the radio. The first time, macOS asks "Unity wants to control Spotify": click **OK**
 - **DRC flags** wave in the wind at every commune, the airport, the stadium, the port and Place du 30 Juin
 - **O** = change clothes: the sapeur suit, or the **street look** (Leopards jersey, jeans, white sneakers, red cap). You wear the same clothes when you sit in the car
 
