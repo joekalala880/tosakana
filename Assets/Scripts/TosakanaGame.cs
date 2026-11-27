@@ -9,6 +9,7 @@ public class TosakanaGame : MonoBehaviour
 
 	public string author = "Joel Kalala";
 	public float enterCarDistance = 4.5f;
+	public GameObject seatedYou;        // you, sitting at the wheel (shown inside the car you drive)
 
 	[Header("The goal of the game")]
 	public int startMoney = 1000;       // you are a rich man already...
@@ -89,6 +90,8 @@ public class TosakanaGame : MonoBehaviour
 			ToggleCar();
 		if (InCar && Input.GetKeyDown(KeyCode.H))
 			sound.Horn();
+		if (InCar && Input.GetKeyDown(KeyCode.V))
+			ToggleInsideView();
 		if (!InVehicle && Input.GetKeyDown(KeyCode.T))
 			TalkToNearest();
 
@@ -180,6 +183,7 @@ public class TosakanaGame : MonoBehaviour
 			CarController car = CurrentCar;
 			car.SetDriver(false);
 			CurrentCar = null;
+			SitInCar(null);
 			player.gameObject.SetActive(true);
 			player.Teleport(ExitSpot(car), car.transform.eulerAngles.y);
 			cameraRig.SetTarget(player.transform, false);
@@ -219,8 +223,13 @@ public class TosakanaGame : MonoBehaviour
 					police.ReportCrime(1, "The police saw you take a car!");
 			}
 		}
+		// The city driver is out: hide them inside the car
+		Transform cityDriver = nearest.transform.Find("Driver");
+		if (cityDriver != null)
+			cityDriver.gameObject.SetActive(false);
 		CurrentCar = nearest;
 		nearest.SetDriver(true);
+		SitInCar(nearest);
 		player.gameObject.SetActive(false);
 		cameraRig.SetTarget(nearest.transform, true);
 		sound.Door();
@@ -315,6 +324,31 @@ public class TosakanaGame : MonoBehaviour
 		return null;
 	}
 
+	// You sit at the wheel of the car you drive (hidden when you look from inside)
+	void SitInCar(CarController car)
+	{
+		if (seatedYou == null)
+			return;
+		if (car == null)
+		{
+			seatedYou.transform.SetParent(null, false);
+			seatedYou.SetActive(false);
+			return;
+		}
+		seatedYou.transform.SetParent(car.transform, false);
+		seatedYou.transform.localPosition = Vector3.zero;
+		seatedYou.transform.localRotation = Quaternion.identity;
+		seatedYou.SetActive(!cameraRig.insideView);
+	}
+
+	// V: look from inside the car / from behind the car
+	public void ToggleInsideView()
+	{
+		cameraRig.insideView = !cameraRig.insideView;
+		if (seatedYou != null && InCar)
+			seatedYou.SetActive(!cameraRig.insideView);
+	}
+
 	public void AddMoney(int amount)
 	{
 		Money += amount;
@@ -355,7 +389,7 @@ public class TosakanaGame : MonoBehaviour
 		else if (!InCar && NearestPerson(4.5f) != null)
 			hintText.text = "Press T to talk  ·  <i>" + Lingala.Talk.lingala + "</i>";
 		else if (InCar && Mathf.Abs(CurrentCar.Speed) < 1f)
-			hintText.text = "Press E to get out   ·   H = horn";
+			hintText.text = "Press E to get out   ·   H = horn   ·   V = " + (cameraRig.insideView ? "view from behind" : "view from inside the car");
 		else
 			hintText.text = "";
 

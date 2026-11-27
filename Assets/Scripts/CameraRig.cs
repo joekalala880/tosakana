@@ -12,6 +12,11 @@ public class CameraRig : MonoBehaviour
 	public float mouseSensitivity = 3f;
 	public bool titleMode;
 
+	[Header("Inside the car (V)")]
+	public bool insideView;
+	public Vector3 driverEyes = new Vector3(-0.45f, 1.56f, -0.2f);   // where your eyes are, sitting at the wheel
+	float lookAround;
+
 	public float Yaw { get { return yaw; } }
 
 	float yaw;
@@ -72,6 +77,16 @@ public class CameraRig : MonoBehaviour
 		{
 			yaw = Mathf.LerpAngle(yaw, target.eulerAngles.y, dt * 4f);
 			pitch = Mathf.Lerp(pitch, 10f, dt * 2f);
+		}
+
+		// Inside the car: you see through the front window, the mouse lets you look left and right
+		if (insideView && followCar && target.GetComponent<CarController>() != null)
+		{
+			lookAround = Mathf.Clamp(lookAround + mx * mouseSensitivity, -100f, 100f);
+			if (Time.time - lastMouse > 1.2f)
+				lookAround = Mathf.Lerp(lookAround, 0, dt * 3f);
+			transform.SetPositionAndRotation(target.TransformPoint(driverEyes), target.rotation * Quaternion.Euler(4f, lookAround, 0));
+			return;
 		}
 
 		float distance = customDistance > 0 ? customDistance : followCar ? carDistance : footDistance;

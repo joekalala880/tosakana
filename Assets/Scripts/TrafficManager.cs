@@ -138,7 +138,7 @@ public class TrafficManager : MonoBehaviour
 		Material body = taxi || carColors == null || carColors.Length == 0 ? taxiColor : carColors[Random.Range(0, carColors.Length)];
 		foreach (Renderer r in car.GetComponentsInChildren<Renderer>(true))
 		{
-			if (r.name == "Body" || r.name == "Cabin")
+			if (r.name == "Body" || r.name == "Cabin" || r.name == "Pillar")
 				r.sharedMaterial = body;
 			else if (r.name == "Stripe" || r.name == "Taxi Sign")
 				r.gameObject.SetActive(taxi);

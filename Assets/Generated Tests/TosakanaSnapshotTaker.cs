@@ -272,6 +272,26 @@ public class TosakanaSnapshotTaker : MonoBehaviour
 		yield return new WaitForSeconds(0.3f);
 		Save(cam, rt, folder, "27_pistol");
 		game.player.GetComponent<PlayerWeapons>().SetPistol(false);
+
+		// Version 10: sitting in the car, the view from inside, the mission card
+		CarController myTaxi = GameObject.Find("Taxi (yours)").GetComponent<CarController>();
+		game.player.Teleport(myTaxi.transform.position - myTaxi.transform.right * 2.3f, 0f);
+		yield return null;
+		game.ToggleCar();
+		myTaxi.Teleport(new Vector3(-150f, 0f, 26.7f), 90f);
+		rig.SetYaw(45f);
+		rig.SetPitch(12f);
+		yield return new WaitForSeconds(0.4f);
+		Save(cam, rt, folder, "28_you_driving");
+		game.ToggleInsideView();
+		myTaxi.testThrottle = 0.5f;
+		yield return new WaitForSeconds(1.5f);
+		Save(cam, rt, folder, "29_view_from_inside");
+		myTaxi.testThrottle = 0;
+		game.ToggleInsideView();
+		missions.StartMission(missions.Find("Matonge"), missions.Find("Lemba"));
+		yield return new WaitForSeconds(0.3f);
+		Save(cam, rt, folder, "30_mission_card");
 		Finished = true;
 	}
 

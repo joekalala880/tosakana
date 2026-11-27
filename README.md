@@ -19,6 +19,8 @@ before time runs out. Every job pays money.
 | ![A roulage officer on Boulevard du 30 Juin](Docs/19_roulage_officer.jpg) | ![They fight back](Docs/21_they_fight_back.jpg) |
 | ![N'djili airport terminal](Docs/23_ndjili_terminal.jpg) | ![Flying over Kinshasa](Docs/24_flying_over_kinshasa.jpg) |
 | ![The rich sapeur](Docs/25_rich_sapeur.jpg) | ![The pistol](Docs/27_pistol.jpg) |
+| ![You driving, seen through the windows](Docs/28_you_driving.jpg) | ![The view from inside the car](Docs/29_view_from_inside.jpg) |
+| ![The mission card](Docs/30_mission_card.jpg) | |
 
 ## Places in the city
 - **Place du 30 Juin** – the square with the DRC flag (you start here)
@@ -41,6 +43,8 @@ before time runs out. Every job pays money.
 | T | talk to someone (in Lingala) |
 | Left click / R | punch (or shoot with the pistol) |
 | Q | fists / pistol |
+| V | view from inside the car / from behind |
+| M | show the mission card again |
 | In a plane | W/S speed · A/D turn · ↑ or Space climb · ↓ or C dive |
 | Esc | free the mouse (click to take it back) |
 
@@ -113,6 +117,13 @@ before time runs out. Every job pays money.
 - **Q** switches between your fists and a pistol; **left click** shoots where the + points
 - People you shoot fall and don't get up; gunshots make everyone near run away
 - Shooting brings wanted stars (shooting a police officer: +2)
+
+## Version 10 adds: sit in the car, see where to go, know your mission 🚗🧭
+- Cars have **see-through windows**, seats, a dashboard and a steering wheel. **You sit at the wheel** in your sapeur suit, and city drivers sit in their cars (when you take a car, its driver gets out)
+- **V** = view from **inside the car**, looking out the front window
+- A **direction arrow** at the top of the screen always points to your mission, with the place and the distance
+- Every mission starts with a **mission card**: what to pick up (fufu, medicine, a wedding cake...), for whom, where to bring it, the pay, and how many more jobs until you are King of Kinshasa. **M** shows it again
+- The mission box says **STEP 1 of 2** (pick up) and **STEP 2 of 2** (deliver); missions pay more (about 20 jobs to reach $25,000)
 
 ## How to open
 Open the folder in Unity Hub (Unity 2022.3). The game is in `Assets/Scenes/Main.unity`. Press ▶ Play.

@@ -754,6 +754,75 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		Check("Q again = back to your fists", !gun.PistolOut && !gun.crosshair.enabled && gun.weaponText.text.StartsWith("FISTS"));
 		pm.ResetWanted();
 
+		// ================= Version 10: inside the car, which way to go, the mission card =================
+		pm.ResetWanted();
+		pm.enabled = false;
+		game.LeaveVehicle();
+		yield return null;
+		missions.StartMission(missions.Find("Grand Marché"), missions.Find("Gombe"));
+		yield return null;
+		string card = missions.briefingText.text;
+		Check("New mission card: what to pick up, for whom, where, the pay and your goal (" + missions.Item + " for " + missions.Customer + ")",
+			missions.BriefingShowing && card.Contains("Pick up") && card.Contains(missions.Item) && card.Contains("Bring it to") && card.Contains(missions.Customer) &&
+			card.Contains("Grand Marché") && card.Contains("Gombe") && card.Contains("Pay:") && card.Contains("goal"));
+		Check("Mission box: \"" + missions.missionText.text.Split('\n')[0] + "\"", missions.missionText.text.StartsWith("STEP 1 of 2") && missions.missionText.text.Contains(missions.Item));
+
+		TargetArrow guide = game.GetComponent<TargetArrow>();
+		player.Teleport(new Vector3(10f, 0.05f, -36.6f), 0f);
+		rig.SetYaw(0f);
+		yield return null;
+		yield return null;
+		Vector3 camFlat = rig.transform.forward;
+		camFlat.y = 0;
+		Vector3 toPickup = missions.Pickup.markerPosition - player.transform.position;
+		toPickup.y = 0;
+		float wantAngle = Vector3.SignedAngle(camFlat, toPickup, Vector3.up);
+		float shownAngle = -guide.hudArrow.localEulerAngles.z;
+		Check("Arrow on the screen points to the mission (" + guide.hudText.text + ")",
+			guide.hudArrow.gameObject.activeSelf && Mathf.Abs(Mathf.DeltaAngle(shownAngle, wantAngle)) < 3f && guide.hudText.text.Contains("Grand Marché") && guide.hudText.text.EndsWith(" m"));
+
+		TrafficDriver cityCar = tm.Drivers.Find(d => d != null && d.enabled);
+		Renderer window = cityCar.transform.Find("Glass").GetComponent<Renderer>();
+		Check("City cars have a driver inside and see-through windows", cityCar.transform.Find("Driver").gameObject.activeSelf && window.sharedMaterial.shader.name.Contains("Transparent"));
+
+		player.Teleport(taxi.transform.position - taxi.transform.right * 2.3f, 0f);
+		ClearAround(taxi.transform.position, 8f);
+		yield return null;
+		game.ToggleCar();
+		yield return null;
+		Check("You sit at the wheel of your car (seen through the windows)", game.InCar && game.CurrentCar == taxi && game.seatedYou.activeSelf && game.seatedYou.transform.parent == taxi.transform);
+		game.ToggleInsideView();
+		yield return null;
+		yield return null;
+		Vector3 eyes = taxi.transform.TransformPoint(rig.driverEyes);
+		Vector3 lookFlat = rig.transform.forward;
+		lookFlat.y = 0;
+		Check("V = view from inside the car, looking where you drive", rig.insideView && Vector3.Distance(rig.transform.position, eyes) < 0.05f &&
+			Vector3.Dot(lookFlat.normalized, taxi.transform.forward) > 0.95f && !game.seatedYou.activeSelf);
+		taxi.testThrottle = 1;
+		yield return new WaitForSeconds(0.8f);
+		taxi.testThrottle = 0;
+		taxi.testBrake = true;
+		Check("Driving from inside: the camera moves with the car", Vector3.Distance(rig.transform.position, taxi.transform.TransformPoint(rig.driverEyes)) < 0.05f);
+		yield return new WaitForSeconds(0.8f);
+		taxi.testBrake = false;
+		game.ToggleInsideView();
+		yield return null;
+		Check("V again = view from behind (you can see yourself again)", !rig.insideView && game.seatedYou.activeSelf);
+		game.ToggleCar();
+		yield return null;
+		Check("Get out: you are not sitting in the car anymore", !game.InCar && !game.seatedYou.activeSelf && player.gameObject.activeSelf);
+
+		cityCar = tm.Drivers.Find(d => d != null && d.enabled && !d.police);
+		player.Teleport(cityCar.transform.position - cityCar.transform.right * 2.4f, 0f);
+		yield return null;
+		ClearAround(cityCar.transform.position, 8f, cityCar.Car);
+		game.ToggleCar();
+		yield return null;
+		Check("Take a city car: their driver gets out, you sit at the wheel", game.CurrentCar == cityCar.Car && !cityCar.transform.Find("Driver").gameObject.activeSelf && game.seatedYou.transform.parent == cityCar.transform);
+		game.LeaveVehicle();
+		pm.ResetWanted();
+
 		Debug.Log("TOSAKANA-CHECK DONE: " + passed + " passed, " + failed + " failed");
 	}
 

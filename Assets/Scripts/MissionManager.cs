@@ -28,6 +28,30 @@ public class MissionManager : MonoBehaviour
 	public Transform markerRing;
 	public TextMesh markerLabel;
 
+	[Header("Mission card")]
+	public GameObject briefingPanel;
+	public Text briefingText;
+	public float briefingSeconds = 8f;
+
+	// What you carry and for whom (one is picked for each mission)
+	public static readonly string[][] Jobs =
+	{
+		new[] { "a bag of fufu flour", "Mama Nzola" },
+		new[] { "medicine", "Papa Mbuyi" },
+		new[] { "a box of pondu", "Tantine Lisa" },
+		new[] { "a new phone", "Ya Patrick" },
+		new[] { "school books", "Mama Kabedi, the teacher" },
+		new[] { "a sack of makayabu (salt fish)", "Koko Mputu" },
+		new[] { "a wedding cake", "Mireille, the bride" },
+		new[] { "important papers", "Monsieur Ilunga" },
+		new[] { "a wax pagne", "Mama Rose" },
+		new[] { "a new football", "the kids of the quartier" },
+	};
+	public string Item { get; private set; }
+	public string Customer { get; private set; }
+	public bool BriefingShowing { get { return briefingPanel != null && briefingPanel.activeSelf; } }
+	float briefingTimer;
+
 	[Header("UI")]
 	public Text titleText;
 	public Text missionText;
@@ -70,9 +94,13 @@ public class MissionManager : MonoBehaviour
 	{
 		Pickup = from;
 		Dropoff = to;
-		Reward = Mathf.Max(200, Mathf.RoundToInt((100f + RouteLength(from, to) * 1.5f) / 50f) * 50);
+		Reward = Mathf.Max(400, Mathf.RoundToInt((200f + RouteLength(from, to) * 3f) / 50f) * 50);   // about 20 jobs to reach the goal
+		string[] job = Jobs[Random.Range(0, Jobs.Length)];
+		Item = job[0];
+		Customer = job[1];
 		CurrentStep = Step.GoToPickup;
 		ShowMarker(from);
+		ShowBriefing();
 		UpdateTexts();
 	}
 
@@ -94,6 +122,22 @@ public class MissionManager : MonoBehaviour
 		if (game == null || !game.IsPlaying)
 			return;
 		Vector3 p = game.Focus.position;
+
+		// The mission card goes away by itself; M shows it again (or hides it)
+		if (briefingPanel != null)
+		{
+			if (Input.GetKeyDown(KeyCode.M))
+			{
+				if (BriefingShowing) briefingPanel.SetActive(false);
+				else ShowBriefing();
+			}
+			if (BriefingShowing)
+			{
+				briefingTimer -= Time.deltaTime;
+				if (briefingTimer <= 0)
+					briefingPanel.SetActive(false);
+			}
+		}
 
 		switch (CurrentStep)
 		{
@@ -149,6 +193,35 @@ public class MissionManager : MonoBehaviour
 
 		AnimateMarker(game);
 		UpdateTexts();
+	}
+
+	// The card in the middle: what to pick up, where to bring it, the pay, and your goal
+	public void ShowBriefing()
+	{
+		if (briefingPanel == null || Pickup == null)
+			return;
+		TosakanaGame game = TosakanaGame.Instance;
+		int seconds = Mathf.CeilToInt(TimeFor(Pickup, Dropoff));
+		string goal = "";
+		if (game != null)
+		{
+			if (game.GoalReached)
+				goal = "\n<color=#ffd84d><b>Your goal:</b> you are already Mokonzi ya Kinshasa! Keep earning.</color>";
+			else
+			{
+				int left = Mathf.Max(0, game.goalMoney - game.Money);
+				int jobs = Mathf.Max(1, Mathf.CeilToInt(left / (float)Reward));
+				goal = "\n<color=#ffd84d><b>Your goal:</b> $" + game.Money.ToString("N0") + " of $" + game.goalMoney.ToString("N0") +
+					" — about " + jobs + " more job" + (jobs == 1 ? "" : "s") + " like this to become King of Kinshasa</color>";
+			}
+		}
+		briefingText.text =
+			"<b>1. Pick up:</b> " + Item + " at <b>" + Pickup.placeName + "</b>  (the yellow marker)\n" +
+			"<b>2. Bring it to:</b> " + Customer + " in <b>" + Dropoff.placeName + "</b>\n" +
+			"<b>Pay:</b> $" + Reward.ToString("N0") + "   ·   <b>Time:</b> " + seconds / 60 + ":" + (seconds % 60).ToString("00") + " once you have it" +
+			goal + "\n<i>Follow the yellow arrow.  Press M to see this card again.</i>";
+		briefingPanel.SetActive(true);
+		briefingTimer = briefingSeconds;
 	}
 
 	void NextMission()
@@ -251,13 +324,13 @@ public class MissionManager : MonoBehaviour
 		{
 			case Step.GoToPickup:
 				titleText.text = "MISSION " + (Completed + 1) + " · DELIVERY  ($" + Reward.ToString("N0") + ")";
-				missionText.text = "Go to the yellow marker at <b>" + Pickup.placeName + "</b> and pick up a package." + distance +
+				missionText.text = "STEP 1 of 2: Pick up <b>" + Item + "</b> at <b>" + Pickup.placeName + "</b>." + distance +
 					"\n<i><color=#ffd84d>" + Lingala.GoGet(Pickup.placeName) + "</color></i>" + tip;
 				timerText.text = "";
 				break;
 			case Step.Deliver:
 				titleText.text = "MISSION " + (Completed + 1) + " · DELIVERY  ($" + Reward.ToString("N0") + ")";
-				missionText.text = "Take the package to <b>" + Dropoff.placeName + "</b> before time runs out!" + distance +
+				missionText.text = "STEP 2 of 2: Bring " + Item + " to " + Customer + " in <b>" + Dropoff.placeName + "</b> before time runs out!" + distance +
 					"\n<i><color=#ffd84d>" + Lingala.Carry(Dropoff.placeName) + "</color></i>" + tip;
 				int s = Mathf.CeilToInt(timeLeft);
 				timerText.text = s / 60 + ":" + (s % 60).ToString("00");

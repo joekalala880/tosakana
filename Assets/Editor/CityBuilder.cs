@@ -55,7 +55,7 @@ public static class CityBuilder
 		mapPlayer, mapTarget, flagMat, lightMat, tailMat, fieldMat, farBank;
 	static Material[] houseMats, brightMats, towerMats, carMats, stallMats, fruitMats;
 	static PhysicMaterial slippery;
-	static Material sirenRed, sirenBlue, policeWhite, rust;
+	static Material sirenRed, sirenBlue, policeWhite, rust, carGlass, seatMat;
 	static Texture2D starTexture;
 
 	[MenuItem("Tools/Tosakana/Build City")]
@@ -97,6 +97,7 @@ public static class CityBuilder
 			MakeOfficer(roulage, n.x, n.y);
 
 		PlayerController player = MakePlayer();
+		GameObject seated = MakeSeatedYou();
 
 		// Game manager
 		GameObject gameGo = new GameObject("Game");
@@ -106,7 +107,7 @@ public static class CityBuilder
 
 		// Traffic and people (Version 2)
 		TrafficManager traffic = gameGo.AddComponent<TrafficManager>();
-		GameObject carTemplate = MakeCar(null, "Traffic Car", Vector3.zero, 0f, true, yellow).gameObject;
+		GameObject carTemplate = MakeCar(null, "Traffic Car", Vector3.zero, 0f, true, yellow, true).gameObject;
 		traffic.carPrefab = SavePrefab(carTemplate, "Assets/Prefabs/TrafficCar.prefab");
 		traffic.carColors = carMats;
 		traffic.taxiColor = yellow;
@@ -128,6 +129,7 @@ public static class CityBuilder
 		police.officerPrefab = SavePrefab(MakePoliceFoot(), "Assets/Prefabs/PoliceOfficer.prefab");
 		MiniMap map = gameGo.AddComponent<MiniMap>();
 		game.player = player;
+		game.seatedYou = seated;
 		game.missions = missions;
 		missions.places = places.ToArray();
 		missions.boulevardZ = Boulevard;
@@ -194,6 +196,8 @@ public static class CityBuilder
 		white = Mat("White", Color.white, 0.3f);
 		black = Mat("Black", new Color(0.06f, 0.06f, 0.06f), 0.3f);
 		glass = Mat("CarGlass", new Color(0.12f, 0.17f, 0.22f), 0.9f);
+		carGlass = Transparent("Car Window", new Color(0.7f, 0.82f, 0.9f, 0.14f));
+		seatMat = Mat("Car Seat", new Color(0.62f, 0.48f, 0.32f), 0.2f);
 		wood = Mat("Wood", new Color(0.5f, 0.33f, 0.18f), 0.15f);
 		signBlue = Mat("SignBlue", new Color(0.05f, 0.3f, 0.65f), 0.3f);
 		signGreen = Mat("SignGreen", new Color(0.05f, 0.45f, 0.25f), 0.3f);
@@ -997,19 +1001,46 @@ public static class CityBuilder
 		}
 	}
 
-	static CarController MakeCar(Transform parent, string name, Vector3 pos, float yaw, bool taxi, Material body)
+	static CarController MakeCar(Transform parent, string name, Vector3 pos, float yaw, bool taxi, Material body, bool withDriver = false)
 	{
 		GameObject car = new GameObject(name);
 		if (parent != null)
 			car.transform.SetParent(parent);
 		car.layer = 2;   // cameras and the exit check ignore cars where needed
 		Part(car, PrimitiveType.Cube, body, new Vector3(0, 0.75f, 0), new Vector3(2f, 0.75f, 4.4f)).name = "Body";
-		Part(car, PrimitiveType.Cube, body, new Vector3(0, 1.45f, -0.25f), new Vector3(1.8f, 0.7f, 2.3f)).name = "Cabin";
-		Part(car, PrimitiveType.Cube, glass, new Vector3(0, 1.42f, -0.25f), new Vector3(1.84f, 0.5f, 2.34f)).name = "Glass";
+		// Cabin: a roof on pillars with see-through windows, so you can see who is driving
+		Part(car, PrimitiveType.Cube, body, new Vector3(0, 1.9f, -0.3f), new Vector3(1.8f, 0.08f, 2.1f)).name = "Cabin";
+		foreach (float x in new[] { -0.86f, 0.86f })
+			foreach (float z in new[] { 0.72f, -0.3f, -1.32f })
+				Part(car, PrimitiveType.Cube, body, new Vector3(x, 1.5f, z), new Vector3(0.08f, 0.76f, 0.08f)).name = "Pillar";
+		Part(car, PrimitiveType.Cube, carGlass, new Vector3(0, 1.5f, -0.3f), new Vector3(1.76f, 0.74f, 2.06f)).name = "Glass";
+		// Inside: seats, dashboard, steering wheel (the driver sits on the left, like in Kinshasa)
+		foreach (float x in new[] { -0.45f, 0.45f })
+		{
+			Part(car, PrimitiveType.Cube, seatMat, new Vector3(x, 1.18f, -0.35f), new Vector3(0.55f, 0.14f, 0.55f)).name = "Seat";
+			Part(car, PrimitiveType.Cube, seatMat, new Vector3(x, 1.45f, -0.64f), new Vector3(0.55f, 0.6f, 0.12f)).name = "Seat Back";
+		}
+		Part(car, PrimitiveType.Cube, seatMat, new Vector3(0, 1.18f, -1.15f), new Vector3(1.5f, 0.14f, 0.5f)).name = "Back Seat";
+		Part(car, PrimitiveType.Cube, black, new Vector3(0, 1.22f, 0.6f), new Vector3(1.7f, 0.22f, 0.32f)).name = "Dashboard";
+		GameObject wheelRing = Part(car, PrimitiveType.Cylinder, black, new Vector3(-0.45f, 1.3f, 0.36f), new Vector3(0.28f, 0.015f, 0.28f));
+		wheelRing.name = "Steering Wheel";
+		wheelRing.transform.localRotation = Quaternion.Euler(60f, 0, 0);
+		if (withDriver)
+		{
+			// Someone from the city driving
+			GameObject driver = new GameObject("Driver");
+			driver.transform.SetParent(car.transform, false);
+			driver.layer = car.layer;
+			Part(driver, PrimitiveType.Capsule, shirt, new Vector3(-0.45f, 1.42f, -0.35f), new Vector3(0.44f, 0.3f, 0.3f));
+			Part(driver, PrimitiveType.Sphere, skin, new Vector3(-0.45f, 1.66f, -0.33f), Vector3.one * 0.26f);
+			Part(driver, PrimitiveType.Sphere, hair, new Vector3(-0.45f, 1.74f, -0.35f), new Vector3(0.25f, 0.12f, 0.25f));
+			foreach (float ax in new[] { -0.62f, -0.28f })
+				Part(driver, PrimitiveType.Cube, skin, new Vector3(ax, 1.42f, -0.05f), new Vector3(0.09f, 0.09f, 0.45f));
+		}
 		if (taxi)
 		{
 			Part(car, PrimitiveType.Cube, blue, new Vector3(0, 0.82f, 0), new Vector3(2.02f, 0.16f, 4.42f)).name = "Stripe";
-			Part(car, PrimitiveType.Cube, white, new Vector3(0, 1.88f, -0.25f), new Vector3(0.7f, 0.18f, 0.35f)).name = "Taxi Sign";
+			Part(car, PrimitiveType.Cube, white, new Vector3(0, 2.03f, -0.3f), new Vector3(0.7f, 0.18f, 0.35f)).name = "Taxi Sign";
 		}
 		foreach (float x in new[] { -0.65f, 0.65f })
 		{
@@ -1110,6 +1141,27 @@ public static class CityBuilder
 		return pc;
 	}
 
+	// You sitting at the wheel: the sapeur's suit, hat and sunglasses, hands on the steering wheel
+	static GameObject MakeSeatedYou()
+	{
+		GameObject you = new GameObject("You In The Car");
+		you.layer = 2;
+		Material jacket = Mat("Sapeur Jacket", new Color(0.88f, 0.16f, 0.42f), 0.35f);
+		Material hat = Mat("Sapeur Hat", new Color(0.96f, 0.92f, 0.8f), 0.3f);
+		float x = -0.45f;
+		Part(you, PrimitiveType.Capsule, jacket, new Vector3(x, 1.42f, -0.35f), new Vector3(0.46f, 0.3f, 0.32f));
+		Part(you, PrimitiveType.Cube, yellow, new Vector3(x, 1.45f, -0.18f), new Vector3(0.05f, 0.22f, 0.02f));
+		Part(you, PrimitiveType.Sphere, skin, new Vector3(x, 1.64f, -0.33f), Vector3.one * 0.26f);
+		Part(you, PrimitiveType.Cube, black, new Vector3(x, 1.67f, -0.21f), new Vector3(0.22f, 0.05f, 0.04f));
+		Part(you, PrimitiveType.Cylinder, hat, new Vector3(x, 1.75f, -0.33f), new Vector3(0.4f, 0.012f, 0.4f));
+		Part(you, PrimitiveType.Cylinder, hat, new Vector3(x, 1.8f, -0.33f), new Vector3(0.24f, 0.05f, 0.24f));
+		Part(you, PrimitiveType.Cylinder, black, new Vector3(x, 1.77f, -0.33f), new Vector3(0.25f, 0.015f, 0.25f));
+		foreach (float ax in new[] { -0.62f, -0.28f })
+			Part(you, PrimitiveType.Cube, jacket, new Vector3(ax, 1.42f, -0.05f), new Vector3(0.1f, 0.1f, 0.45f));
+		you.SetActive(false);
+		return you;
+	}
+
 	static Transform Limb(GameObject body, string name, Vector3 joint, Vector3 size, Material mat, string partName = "Cube")
 	{
 		Transform pivot = new GameObject(name).transform;
@@ -1155,12 +1207,12 @@ public static class CityBuilder
 	// A white police car with a blue stripe, red and blue lights, a siren and a dot for the mini-map
 	static GameObject MakePoliceCar()
 	{
-		GameObject car = MakeCar(null, "Police Car", Vector3.zero, 0f, true, policeWhite).gameObject;
+		GameObject car = MakeCar(null, "Police Car", Vector3.zero, 0f, true, policeWhite, true).gameObject;
 		Object.DestroyImmediate(car.transform.Find("Taxi Sign").gameObject);
-		Part(car, PrimitiveType.Cube, black, new Vector3(0, 1.85f, -0.1f), new Vector3(1.4f, 0.1f, 0.4f)).name = "Light Bar";
-		GameObject red = Part(car, PrimitiveType.Cube, sirenRed, new Vector3(-0.36f, 1.98f, -0.1f), new Vector3(0.62f, 0.18f, 0.36f));
+		Part(car, PrimitiveType.Cube, black, new Vector3(0, 1.98f, -0.1f), new Vector3(1.4f, 0.1f, 0.4f)).name = "Light Bar";
+		GameObject red = Part(car, PrimitiveType.Cube, sirenRed, new Vector3(-0.36f, 2.11f, -0.1f), new Vector3(0.62f, 0.18f, 0.36f));
 		red.name = "Red Light";
-		GameObject blueLight = Part(car, PrimitiveType.Cube, sirenBlue, new Vector3(0.36f, 1.98f, -0.1f), new Vector3(0.62f, 0.18f, 0.36f));
+		GameObject blueLight = Part(car, PrimitiveType.Cube, sirenBlue, new Vector3(0.36f, 2.11f, -0.1f), new Vector3(0.62f, 0.18f, 0.36f));
 		blueLight.name = "Blue Light";
 
 		GameObject icon = Part(car, PrimitiveType.Sphere, sirenBlue, new Vector3(0, 149f, 0), Vector3.one * 9f);
@@ -1395,6 +1447,32 @@ public static class CityBuilder
 		game.zoneText = Label(hud, "Area Name", "", 40, TextAnchor.MiddleRight, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-34, 120), new Vector2(700, 56), Color.white, FontStyle.BoldAndItalic);
 		game.speedText = Label(hud, "Speed", "", 46, TextAnchor.MiddleRight, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-34, 60), new Vector2(400, 60), new Color(0.6f, 0.85f, 1f), FontStyle.Bold);
 
+		// Which way to go: an arrow at the bottom of the screen, with the place and the distance
+		TargetArrow ta = game.GetComponent<TargetArrow>();
+		GameObject hudArrowGo = new GameObject("Direction Arrow", typeof(RectTransform), typeof(RawImage), typeof(Shadow));
+		RectTransform hudArrow = (RectTransform)hudArrowGo.transform;
+		hudArrow.SetParent(hud, false);
+		hudArrow.anchorMin = hudArrow.anchorMax = new Vector2(0.5f, 1);
+		hudArrow.pivot = new Vector2(0.5f, 0.5f);
+		hudArrow.sizeDelta = new Vector2(62, 62);
+		hudArrow.anchoredPosition = new Vector2(0, -255);
+		hudArrowGo.GetComponent<RawImage>().texture = SaveTexture(ArrowTexture(), "Assets/Textures/Direction Arrow.asset");
+		hudArrowGo.GetComponent<RawImage>().color = gold;
+		hudArrowGo.GetComponent<RawImage>().raycastTarget = false;
+		hudArrowGo.GetComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.8f);
+		ta.hudArrow = hudArrow;
+		ta.hudText = Label(hud, "Direction Text", "", 28, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -305), new Vector2(800, 36), gold, FontStyle.Bold);
+
+		// The mission card: what to pick up, where to bring it, the pay and your goal
+		RectTransform card = Rect(hud, "Mission Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 60), new Vector2(1060, 300), new Color(0.05f, 0.06f, 0.09f, 0.88f), null);
+		Rect(card, "Card Stripe", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, 0), new Vector2(1060, 8), new Color(0f, 0.5f, 1f), null);
+		Label(card, "Card Title", "NEW MISSION", 40, TextAnchor.UpperCenter, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -20), new Vector2(1000, 50), gold, FontStyle.Bold);
+		missions.briefingText = Label(card, "Card Text", "", 27, TextAnchor.UpperLeft, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -80), new Vector2(980, 210), Color.white, FontStyle.Normal);
+		missions.briefingText.horizontalOverflow = HorizontalWrapMode.Wrap;
+		missions.briefingText.lineSpacing = 1.15f;
+		missions.briefingPanel = card.gameObject;
+		card.gameObject.SetActive(false);
+
 		// Health bar (above the mini-map) and a red flash when you get hit
 		RectTransform healthBack = Rect(hud, "Health Bar", new Vector2(0, 0), new Vector2(0, 0), new Vector2(40, 362), new Vector2(300, 16), new Color(0, 0, 0, 0.6f), null);
 		GameObject fillGo = new GameObject("Health Fill", typeof(RectTransform), typeof(Image));
@@ -1439,7 +1517,8 @@ public static class CityBuilder
 		Label(controls, "Controls", "W A S D  –  walk / drive          Mouse  –  look around\n" +
 			"Shift  –  run          Space  –  jump / brake\n" +
 			"E  –  get in or out of a car          H  –  horn\n" +
-			"Left click / R  –  punch or shoot      Q  –  fists / pistol      T  –  talk      Esc  –  free the mouse", 28, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(960, 190), Color.white, FontStyle.Normal);
+			"Left click / R  –  punch or shoot      Q  –  fists / pistol      T  –  talk\n" +
+			"V  –  view from inside the car      M  –  mission card      Esc  –  free the mouse", 28, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(960, 190), Color.white, FontStyle.Normal);
 
 		game.pressEnterText = Label(title, "Press Enter", "Press ENTER to start", 50, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -310), new Vector2(1000, 64), Color.white, FontStyle.Bold);
 		Label(title, "Made By", "Made by " + game.author, 32, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -400), new Vector2(1000, 44), new Color(1f, 0.95f, 0.75f), FontStyle.Italic);
@@ -1700,6 +1779,23 @@ public static class CityBuilder
 				if (InPolygon(new Vector2(x, y), pts))
 					c = yel;
 				t.SetPixel(x, y, c);
+			}
+		t.Apply();
+		return t;
+	}
+
+	// A white arrow pointing up (it turns to show the way)
+	static Texture2D ArrowTexture()
+	{
+		const int s = 64;
+		Texture2D t = new Texture2D(s, s, TextureFormat.RGBA32, true);
+		t.wrapMode = TextureWrapMode.Clamp;
+		Vector2[] head = { new Vector2(32, 62), new Vector2(6, 30), new Vector2(58, 30) };
+		for (int y = 0; y < s; y++)
+			for (int x = 0; x < s; x++)
+			{
+				bool inside = InPolygon(new Vector2(x + 0.5f, y + 0.5f), head) || (x >= 22 && x < 42 && y >= 4 && y < 32);
+				t.SetPixel(x, y, new Color(1, 1, 1, inside ? 1 : 0));
 			}
 		t.Apply();
 		return t;
