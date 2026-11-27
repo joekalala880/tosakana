@@ -37,13 +37,6 @@ public static partial class CityBuilder
 		RawImage raw = viewGo.GetComponent<RawImage>();
 		raw.texture = rt;
 		big.view = raw;
-		GameObject layerGo = new GameObject("Big Map Icons", typeof(RectTransform));
-		RectTransform layer = (RectTransform)layerGo.transform;
-		layer.SetParent(view, false);
-		layer.anchorMin = Vector2.zero;
-		layer.anchorMax = Vector2.one;
-		layer.offsetMin = layer.offsetMax = Vector2.zero;
-		big.iconLayer = layer;
 		big.font = font;
 		big.dot = dot;
 
@@ -59,6 +52,14 @@ public static partial class CityBuilder
 			Rect(legend, "Legend Dot", new Vector2(0, 1), new Vector2(0.5f, 0.5f), new Vector2(34, -28 - i * 37), new Vector2(24, 24), colors[i], dot);
 			Label(legend, "Legend Name", names[i], 23, TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(0, 0.5f), new Vector2(60, -28 - i * 37), new Vector2(260, 32), Color.white, FontStyle.Normal);
 		}
+		// The names and icons go on top of everything (made last), so the legend never hides the airport or another icon
+		GameObject layerGo = new GameObject("Big Map Icons", typeof(RectTransform));
+		RectTransform layer = (RectTransform)layerGo.transform;
+		layer.SetParent(panel, false);
+		layer.anchorMin = layer.anchorMax = view.anchorMin;
+		layer.sizeDelta = view.sizeDelta;
+		layer.anchoredPosition = view.anchoredPosition;
+		big.iconLayer = layer;
 		panel.gameObject.SetActive(false);
 	}
 

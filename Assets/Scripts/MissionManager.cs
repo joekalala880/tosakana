@@ -287,6 +287,22 @@ public class MissionManager : MonoBehaviour
 		return row[i].Trim();
 	}
 
+	// True when you are well inside a commune (not on the road between two of them, and not outside the city).
+	// The welcome waits for this, so it never says the wrong commune or repeats while you drive along a border.
+	public bool ClearlyIn(Vector3 p)
+	{
+		if (p.x > airportStartX + 5f)
+			return true;
+		if (communeRows == null || communeRows.Length == 0)
+			return false;
+		float fx = (p.x - communeStart) / communeStep, fz = (p.z - communeStart) / communeStep;
+		int i = Mathf.RoundToInt(fx), j = Mathf.RoundToInt(fz);
+		if (j < 0 || j >= communeRows.Length || i < 0 || i >= communeRows[j].Split(',').Length)
+			return false;   // outside the city (the river, the fields)
+		const float inside = 24f;   // the road between two communes is about 29 m from the middle of a block
+		return Mathf.Abs(fx - i) * communeStep < inside && Mathf.Abs(fz - j) * communeStep < inside;
+	}
+
 	// The area name you see at the bottom right: the boulevard, a famous place, or the commune
 	public string ZoneName(Vector3 p)
 	{

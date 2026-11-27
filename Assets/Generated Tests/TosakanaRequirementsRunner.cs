@@ -385,6 +385,15 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		yield return null;
 		Check("Entering a commune: \"" + game.areaBanner.text + "\" / \"" + game.areaBannerSub.text + "\"", game.areaBanner.text == "Bokomi malamu na LEMBA" && game.areaBannerSub.text == "Welcome to Lemba");
 		Check("Area name at the bottom right says Lemba (" + game.zoneText.text + ")", game.zoneText.text == "Lemba");
+		// On the road between Lemba and the next commune: no new welcome (it used to flip back and forth)
+		string communeBefore = game.CurrentCommune;
+		player.Teleport(new Vector3(87f, 0.05f, -94.6f), 0f);   // the street on Lemba's east side
+		yield return null;
+		yield return null;
+		Check("On the border road the welcome does not change (still " + game.CurrentCommune + ")", game.CurrentCommune == communeBefore);
+		player.Teleport(new Vector3(58f, 0.05f, -94.6f), 0f);
+		yield return null;
+		Check("People do not talk on their own (only when you do something)", !Pedestrian.greetOnTheirOwn);
 
 		// Talk to someone with T
 		Pedestrian friend = Pedestrian.All.Find(p => p.role == Pedestrian.Role.Normal && !p.hangOut && !p.cheering && !p.IsDown && !p.Crossing && !p.carriesBasin);
@@ -1154,6 +1163,10 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		big.Open();
 		yield return new WaitForSecondsRealtime(0.2f);
 		Check("Tab = the big map: the game stops, " + big.LabelCount + " names of places, a legend", big.IsOpen && big.panel.activeSelf && Time.timeScale == 0f && big.LabelCount >= 20 && big.mapCam.enabled);
+		Transform airportIcon = big.iconLayer.Find("Map Icon ✈");
+		Transform legendBox = big.panel.transform.Find("Legend");
+		Check("Big map: the airport icon shows, on top of the legend", airportIcon != null && airportIcon.gameObject.activeInHierarchy && legendBox != null &&
+			big.iconLayer.GetSiblingIndex() > legendBox.GetSiblingIndex());
 		Vector3 wp = big.SetWaypointAtViewport(new Vector2(0.75f, 0.5f));
 		yield return new WaitForSecondsRealtime(0.1f);
 		big.Close();

@@ -612,9 +612,15 @@ public class Pedestrian : MonoBehaviour
 			combat.TakeDamage(attackDamage);
 	}
 
+	// People do not talk on their own any more (everyone has your voice, so it sounded like you talking by yourself).
+	// They talk when you do something: press T, hit them, take their car, the police...
+	public static bool greetOnTheirOwn = false;
+
 	// Sometimes people say hello when you walk past
 	void GreetYou(float dt)
 	{
+		if (!greetOnTheirOwn)
+			return;
 		greetCooldown -= dt;
 		TosakanaGame game = TosakanaGame.Instance;
 		if (game == null || !game.IsPlaying || game.InVehicle || greetCooldown > 0 || Time.time < nextGreetTime)

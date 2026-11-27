@@ -54,6 +54,7 @@ public class TosakanaGame : MonoBehaviour
 	float bigTimer, bigLength, bannerTimer;
 	int talkIndex;
 	string lastCommune = "";
+	readonly System.Collections.Generic.Dictionary<string, float> welcomedAt = new System.Collections.Generic.Dictionary<string, float>();
 	public string CurrentCommune { get { return lastCommune; } }
 	Color bigColor;
 
@@ -435,12 +436,19 @@ public class TosakanaGame : MonoBehaviour
 			: InCar ? Mathf.RoundToInt(Mathf.Abs(CurrentCar.Speed) * 3.6f) + " km/h" : "";
 
 		// Entering a new commune: "Bokomi malamu na LEMBA" (Welcome to Lemba)
+		// The voice says it once when you really arrive: not on the border road, not from the sky in a plane,
+		// and not again if you were welcomed to the same place in the last 2 minutes.
 		string commune = missions.CommuneAt(Focus.position);
-		if (commune != lastCommune)
+		if (commune != lastCommune && missions.ClearlyIn(Focus.position))
 		{
 			lastCommune = commune;
-			if (IsPlaying)
+			float last;
+			bool welcomedLately = welcomedAt.TryGetValue(commune, out last) && Time.time - last < 120f;
+			if (IsPlaying && !InPlane && !welcomedLately)
+			{
+				welcomedAt[commune] = Time.time;
 				Voice.SayToYou(Lingala.WelcomeTo(commune), false);   // only if you recorded it
+			}
 			if (areaBanner != null)
 			{
 				areaBanner.text = Lingala.Welcome.lingala + " " + commune.ToUpper();
