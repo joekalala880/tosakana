@@ -128,10 +128,10 @@ public static class Lingala
 
 	// Welcome to each commune (only plays if you recorded it)
 	public static readonly string[] CommuneNames = { "Gombe", "Matonge", "Lemba", "Ngiri-Ngiri", "Bandal", "Bumbu", "Selembao", "Mont-Ngafula", "Kintambo", "Limete", "Kalamu", "Lingwala" };
-	public static Line WelcomeTo(string commune) { return L("Boyei malamu na " + commune + "!", "Welcome to " + commune + "!"); }
+	public static Line WelcomeTo(string commune) { return L("Bokomi malamu na " + commune + "!", "Welcome to " + commune + "!"); }
 
 	// Big messages
-	public static readonly Line Welcome = L("Boyei malamu na", "Welcome to");
+	public static readonly Line Welcome = L("Bokomi malamu na", "Welcome to");
 	public static readonly Line Passed = L("Matondo!", "Thank you!");
 	public static readonly Line TooSlow = L("Malembe mingi!", "Too slow!");
 	public static readonly Line Busted = L("Bakangi yo!", "They caught you!");

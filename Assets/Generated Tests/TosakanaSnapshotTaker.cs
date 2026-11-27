@@ -184,7 +184,7 @@ public class TosakanaSnapshotTaker : MonoBehaviour
 		rig.SetYaw(170f);
 		rig.SetPitch(6f);
 		yield return new WaitForSeconds(0.4f);
-		Save(cam, rt, folder, "17_lemba_boyei_malamu");
+		Save(cam, rt, folder, "17_lemba_bokomi_malamu");
 
 		game.player.Teleport(new Vector3(-30f, 0.05f, -145f), 270f);   // between Bumbu and Mont-Ngafula
 		rig.SetYaw(230f);

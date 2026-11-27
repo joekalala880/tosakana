@@ -375,7 +375,7 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 		player.Teleport(new Vector3(58f, 0.05f, -94.6f), 0f);   // a sidewalk in Lemba
 		yield return null;
 		yield return null;
-		Check("Entering a commune: \"" + game.areaBanner.text + "\" / \"" + game.areaBannerSub.text + "\"", game.areaBanner.text == "Boyei malamu na LEMBA" && game.areaBannerSub.text == "Welcome to Lemba");
+		Check("Entering a commune: \"" + game.areaBanner.text + "\" / \"" + game.areaBannerSub.text + "\"", game.areaBanner.text == "Bokomi malamu na LEMBA" && game.areaBannerSub.text == "Welcome to Lemba");
 		Check("Area name at the bottom right says Lemba (" + game.zoneText.text + ")", game.zoneText.text == "Lemba");
 
 		// Talk to someone with T

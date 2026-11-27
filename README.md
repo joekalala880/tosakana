@@ -69,7 +69,7 @@ before time runs out. Every job pays money.
   Gombe, Kintambo and Limete by the river; Lingwala, Ngiri-Ngiri, Bandal, Kalamu, Matonge in the middle;
   Bumbu, Selembao and Lemba further south; Mont-Ngafula with green land and mango trees
 - Each commune has its own look (Gombe towers, Bumbu and Selembao small houses with tin roofs, bright Matonge, Limete warehouses)
-- Each commune has a sign and a mission place. When you enter one: **"Boyei malamu na LEMBA"** (Welcome to Lemba)
+- Each commune has a sign and a mission place. When you enter one: **"Bokomi malamu na LEMBA"** (Welcome to Lemba)
 - **People speak Lingala** in speech bubbles, with the English under each line:
   - Press **T** near someone to talk: *"Mbote!"* → *"Mbote na yo, ndeko!"*
   - People say *"Keba!"* when a car comes, *"Moyibi!"* when you take a car, and *"Ozali liboma?"* if you hit them

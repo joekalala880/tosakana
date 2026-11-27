@@ -461,7 +461,7 @@ public static class CityBuilder
 				break;
 		}
 
-		// ---- Mission places and "Boyei malamu" signs, one per commune ----
+		// ---- Mission places and "Bokomi malamu" signs, one per commune ----
 		switch (c.x + "," + c.z)
 		{
 			case "58,58": CommunePlace(block, places, "Gombe", c, south); break;
@@ -479,11 +479,11 @@ public static class CityBuilder
 		}
 	}
 
-	// A mission place for a commune, with a big sign on the street side: "LEMBA — Boyei malamu"
+	// A mission place for a commune, with a big sign on the street side: "LEMBA — Bokomi malamu"
 	static void CommunePlace(Transform block, List<Place> places, string name, Vector3 c, Vector3 marker)
 	{
 		bool northSide = marker.z > c.z;
-		Sign(block, name.ToUpper(), c + new Vector3(0, 0, northSide ? 21f : -21f), northSide ? 0f : 180f, signGreen, "Boyei malamu!  ·  Welcome!");
+		Sign(block, name.ToUpper(), c + new Vector3(0, 0, northSide ? 21f : -21f), northSide ? 0f : 180f, signGreen, "Bokomi malamu!  ·  Welcome!");
 		places.Add(MakePlace(name, c, 0f, marker));
 	}
 
@@ -1145,7 +1145,7 @@ public static class CityBuilder
 		game.bigText = Label(hud, "Big Text", "", 84, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 190), new Vector2(1400, 110), gold, FontStyle.Bold);
 		game.bigSubText = Label(hud, "Big Sub Text", "", 42, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 110), new Vector2(1400, 60), Color.white, FontStyle.Normal);
 
-		// "Boyei malamu na LEMBA" when you enter a commune (top center, under the timer)
+		// "Bokomi malamu na LEMBA" when you enter a commune (top center, under the timer)
 		game.areaBanner = Label(hud, "Area Banner", "", 54, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -120), new Vector2(1400, 70), gold, FontStyle.Bold);
 		game.areaBannerSub = Label(hud, "Area Banner Sub", "", 30, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -182), new Vector2(1400, 40), Color.white, FontStyle.Italic);
 

@@ -267,7 +267,7 @@ public class TosakanaGame : MonoBehaviour
 
 		speedText.text = InCar ? Mathf.RoundToInt(Mathf.Abs(CurrentCar.Speed) * 3.6f) + " km/h" : "";
 
-		// Entering a new commune: "Boyei malamu na LEMBA" (Welcome to Lemba)
+		// Entering a new commune: "Bokomi malamu na LEMBA" (Welcome to Lemba)
 		string commune = missions.CommuneAt(Focus.position);
 		if (commune != lastCommune)
 		{
