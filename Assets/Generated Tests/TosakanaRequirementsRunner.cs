@@ -1091,6 +1091,103 @@ public class TosakanaRequirementsRunner : MonoBehaviour
 			club.Wins == 1 && game.Money - moneyRing == prize && club.Level == 1 && club.Prize == 600 && game.bigText.text == "YOU WIN!");
 		player.Teleport(new Vector3(8f, 0.05f, -22.6f), 90f);
 
+		// ================= Version 13: carjacking, fights that grow, the big map and the GPS =================
+		pm.ResetWanted();
+		pm.enabled = false;
+		fists.Heal();
+		yield return new WaitForSeconds(0.3f);
+		// Pull a driver out of their car
+		game.carjackFightChance = 1f;
+		TrafficDriver victimCar = tm.Drivers.Find(d => d != null && d.enabled && !d.police);
+		player.Teleport(victimCar.transform.position - victimCar.transform.right * 2.4f, 0f);
+		yield return null;
+		ClearAround(victimCar.transform.position, 8f, victimCar.Car);
+		ClearPeopleAround(victimCar.transform.position, 8f, null);
+		game.ToggleCar();
+		yield return null;
+		Pedestrian owner = game.LastJackedDriver;
+		Check("Steal a car: you pull the driver out, they fall on the road and shout (\"" + (owner != null ? Said(owner.gameObject) : "") + "\")",
+			game.InCar && game.CurrentCar == victimCar.Car && owner != null && owner.IsDown && IsLine(Said(owner.gameObject), Lingala.Thief));
+		CarController stolen = game.CurrentCar;
+		stolen.testBrake = true;
+		int pulledBefore = game.TimesPulledOut;
+		float pullWait = Time.time + 10f;
+		while (game.TimesPulledOut == pulledBefore && Time.time < pullWait)
+			yield return null;
+		stolen.testBrake = false;
+		Check("Stay still and the owner runs to the car and pulls YOU out (\"" + game.bigText.text + "\")",
+			game.TimesPulledOut == pulledBefore + 1 && !game.InCar && game.bigText.text == "PULLED OUT!");
+		yield return new WaitForSeconds(0.3f);
+		Check("...then the owner fights you", owner.FightingYou);
+		owner.CalmDown();
+		owner.ownsYourCar = false;
+		game.carjackFightChance = 0.5f;
+		pm.ResetWanted();
+		fists.Heal();
+		yield return new WaitForSeconds(0.5f);
+
+		// Hit someone and their friend joins the fight
+		Pedestrian.friendJoinChance = 1f;
+		var calm = Pedestrian.All.FindAll(p => p.role == Pedestrian.Role.Normal && p.CurrentMood == Pedestrian.Mood.Walk && !p.IsDown && !p.carriesBasin && !p.cheering && !p.hangOut);
+		Pedestrian hitMe = calm[0], buddy = calm[1];
+		player.Teleport(new Vector3(-116f, 0.05f, -94.6f), 90f);
+		yield return null;
+		ClearPeopleAround(player.transform.position, 12f, null);
+		hitMe.testHold = true; hitMe.testNoDodge = true;
+		buddy.testHold = true; buddy.testNoDodge = true;
+		hitMe.transform.position = player.transform.position + player.transform.forward * 1.1f;
+		buddy.transform.position = player.transform.position + player.transform.forward * 3f + Vector3.forward * 1.5f;
+		yield return null;
+		fists.Punch();
+		yield return null;
+		Check("Punch someone in the face: a friend standing close comes to fight you too", buddy.FightingYou);
+		Pedestrian.friendJoinChance = 0.35f;
+		hitMe.testHold = false; hitMe.testNoDodge = false;
+		buddy.testHold = false; buddy.testNoDodge = false;
+		hitMe.CalmDown(); buddy.CalmDown();
+		pm.ResetWanted();
+		fists.Heal();
+
+		// The big map
+		BigMap big = game.GetComponent<BigMap>();
+		Gps gps = game.GetComponent<Gps>();
+		big.Open();
+		yield return new WaitForSecondsRealtime(0.2f);
+		Check("Tab = the big map: the game stops, " + big.LabelCount + " names of places, a legend", big.IsOpen && big.panel.activeSelf && Time.timeScale == 0f && big.LabelCount >= 20 && big.mapCam.enabled);
+		Vector3 wp = big.SetWaypointAtViewport(new Vector2(0.75f, 0.5f));
+		yield return new WaitForSecondsRealtime(0.1f);
+		big.Close();
+		yield return null;
+		Check("Click the map = a waypoint (" + wp.x.ToString("0") + ", " + wp.z.ToString("0") + "), Tab again = back to the game", BigMap.HasWaypoint && !big.IsOpen && Time.timeScale == 1f);
+		MiniMap mini = game.GetComponent<MiniMap>();
+		Check("The waypoint shows on the mini-map (purple)", mini.waypointIcon.gameObject.activeSelf);
+		gps.Refresh();
+		Vector3 gpsEnd = gps.Points[gps.Points.Count - 1];
+		Vector3 goalNow = gps.ToMission ? missions.Target.markerPosition : BigMap.Waypoint;
+		Check("GPS: a line on the roads shows the way (" + gps.Points.Count + " points, " + gps.Length().ToString("0") + " m, to the " + (gps.ToMission ? "mission" : "waypoint") + ")",
+			gps.Showing && gps.Points.Count >= 3 && Flat(gpsEnd - goalNow) < 1f);
+		bool onRoads = true;
+		for (int i = 1; i < gps.Points.Count - 1; i++)
+		{
+			Vector3 a = gps.Points[i], b = gps.Points[i + 1];
+			if (i + 1 == gps.Points.Count - 1) break;   // the last bit goes from the street to the spot
+			if (Mathf.Abs(a.x - b.x) > 1f && Mathf.Abs(a.z - b.z) > 1f) onRoads = false;   // no cutting through blocks
+		}
+		Check("GPS goes along the streets (straight lines, turns at crossroads)", onRoads);
+		// No mission: the arrow and the GPS go to the waypoint
+		missions.CancelForTest();
+		yield return null;
+		gps.Refresh();
+		yield return null;
+		TargetArrow guide13 = game.GetComponent<TargetArrow>();
+		Check("No mission: the arrow and the purple GPS line go to your waypoint (\"" + guide13.hudText.text + "\")",
+			!gps.ToMission && gps.Showing && guide13.hudText.text.StartsWith("Waypoint") && Flat(gps.Points[gps.Points.Count - 1] - BigMap.Waypoint) < 1f);
+		player.Teleport(BigMap.Waypoint + Vector3.up * 0.05f, 0f);
+		float wpWait = Time.time + 2f;
+		while (BigMap.HasWaypoint && Time.time < wpWait) yield return null;
+		Check("Get there: the waypoint goes away", !BigMap.HasWaypoint);
+		player.Teleport(new Vector3(8f, 0.05f, -22.6f), 90f);
+
 		Debug.Log("TOSAKANA-CHECK DONE: " + passed + " passed, " + failed + " failed");
 	}
 

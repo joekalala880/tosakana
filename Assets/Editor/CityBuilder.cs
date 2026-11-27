@@ -167,6 +167,7 @@ public static partial class CityBuilder
 		gameGo.AddComponent<StreetFights>();
 		KulunaSpots(gameGo, places);
 		FightRing(gameGo);
+		MakeGps(gameGo);
 
 		MakeMarker(missions);
 		MakeTargetArrow(gameGo);
@@ -1474,6 +1475,12 @@ public static partial class CityBuilder
 		GameObject target = Part(new GameObject("Map Target"), PrimitiveType.Sphere, mapTarget, Vector3.zero, Vector3.one * 13f).transform.parent.gameObject;
 		SetLayer(target, MapLayer);
 		map.targetIcon = target.transform;
+
+		Material purple = Unlit("Map Waypoint", new Color(0.7f, 0.25f, 1f));
+		GameObject waypoint = Part(new GameObject("Map Waypoint"), PrimitiveType.Sphere, purple, Vector3.zero, Vector3.one * 12f).transform.parent.gameObject;
+		SetLayer(waypoint, MapLayer);
+		map.waypointIcon = waypoint.transform;
+		waypoint.SetActive(false);
 		return rt;
 	}
 
@@ -1647,10 +1654,13 @@ public static partial class CityBuilder
 			"E  –  get in or out of a car          H  –  horn\n" +
 			"Left click / R  –  punch (click fast: jab, cross, hook)      G  –  kick      Right click / B  –  block      X  –  dodge\n" +
 			"Q  –  fists / pistol      T  –  talk      V  –  inside the car      N  –  radio station      O  –  clothes\n" +
-			"M  –  mission card      Esc  –  free the mouse", 25, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1160, 220), Color.white, FontStyle.Normal);
+			"Tab  –  big map (click = waypoint)      M  –  mission card      Esc  –  free the mouse", 25, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1160, 220), Color.white, FontStyle.Normal);
 
 		game.pressEnterText = Label(title, "Press Enter", "Press ENTER to start", 50, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -310), new Vector2(1000, 64), Color.white, FontStyle.Bold);
 		Label(title, "Made By", "Made by " + game.author, 32, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -400), new Vector2(1000, 44), new Color(1f, 0.95f, 0.75f), FontStyle.Italic);
+
+		// Version 13: the big map (Tab)
+		MakeBigMap(game, canvasGo.transform, knob);
 	}
 
 	// pos = where the pivot sits, measured from the anchor

@@ -90,6 +90,9 @@ public class MissionManager : MonoBehaviour
 		return places[0];
 	}
 
+	// For the play-mode checks: no mission for now (the GPS then goes to your waypoint)
+	public void CancelForTest() { CurrentStep = Step.None; }
+
 	public void StartMission(Place from, Place to)
 	{
 		Pickup = from;

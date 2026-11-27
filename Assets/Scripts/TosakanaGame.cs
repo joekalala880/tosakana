@@ -9,6 +9,9 @@ public class TosakanaGame : MonoBehaviour
 
 	public string author = "Joel Kalala";
 	public float enterCarDistance = 4.5f;
+	[Range(0, 1)] public float carjackFightChance = 0.5f;   // the driver you pull out comes after you
+	public Pedestrian LastJackedDriver { get; private set; }
+	public int TimesPulledOut { get; private set; }
 	public GameObject seatedYou;        // you, sitting at the wheel (shown inside the car you drive)
 
 	[Header("The goal of the game")]
@@ -85,6 +88,8 @@ public class TosakanaGame : MonoBehaviour
 				StartGame();
 			return;
 		}
+		if (BigMap.IsOpenNow)
+			return;   // the big map uses the mouse and keys
 
 		if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.F))
 			ToggleCar();
@@ -212,9 +217,13 @@ public class TosakanaGame : MonoBehaviour
 		{
 			if (PedestrianManager.Instance != null)
 			{
+				// You pull the driver out: they fall on the road, then run away or come after you
 				Pedestrian angry = PedestrianManager.Instance.SpawnDriver(ExitSpot(nearest), nearest.transform.eulerAngles.y - 90f);
 				if (angry != null)
-					Voice.Say(angry.gameObject, Lingala.Pick(Lingala.Thief));
+				{
+					angry.YankedOut(nearest.transform.position, Random.value < carjackFightChance);
+					LastJackedDriver = angry;
+				}
 			}
 			PoliceManager police = PoliceManager.Instance;
 			if (police != null)
@@ -247,6 +256,20 @@ public class TosakanaGame : MonoBehaviour
 		player.Teleport(new Vector3(spot.x, 0.05f, spot.z), plane.transform.eulerAngles.y);
 		cameraRig.SetTarget(player.transform, false);
 		sound.Door();
+	}
+
+	// The owner of the car you took caught you: pulled out of the car, and they fight you
+	public void PulledOut(Pedestrian by)
+	{
+		if (!InCar)
+			return;
+		CarController car = CurrentCar;
+		LeaveVehicle();
+		player.Teleport(car.transform.position - car.transform.right * 2.6f, car.transform.eulerAngles.y);
+		ShowBig("PULLED OUT!", "Zongisa motuka na ngai!  ·  Give me back my car!", new Color(1f, 0.35f, 0.25f), 2.5f);
+		if (by != null)
+			by.JoinFight();
+		TimesPulledOut++;
 	}
 
 	// Get out of whatever you are in (BUSTED, crash)

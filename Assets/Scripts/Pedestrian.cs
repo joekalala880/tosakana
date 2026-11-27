@@ -48,7 +48,10 @@ public class Pedestrian : MonoBehaviour
 	public enum Mood { Walk, Flee, Fight }
 	public Mood CurrentMood { get { return mood; } }
 	public int Punched { get; private set; }
-	[Range(0, 1)] public float fightBackChance = 0.3f;
+	[Range(0, 1)] public float fightBackChance = 0.5f;
+	public static float friendJoinChance = 0.35f;   // a friend standing close may join the fight against you
+	[HideInInspector] public bool ownsYourCar;       // you took their car: they run after it
+	public float PullTimer { get; private set; }
 	[HideInInspector] public bool testForceFight;
 	[HideInInspector] public bool testForceFlee;
 	Mood mood, moodAfterGettingUp;
@@ -354,14 +357,21 @@ public class Pedestrian : MonoBehaviour
 		if (!down && mood != Mood.Fight && role != Role.Normal)
 			StartMood(Mood.Fight);
 
-		// You hit a normal person who was not attacking you: that's a crime, and people around run away
+		// You hit a normal person who was not attacking you: that's a crime. Friends close by may join in, the others run away
 		if (byYou && role == Role.Normal && !wasFightingYou && (Punched == 1 || down))
 		{
 			if (PoliceManager.Instance != null)
 				PoliceManager.Instance.ReportCrime(1, "You hit a person!");
 			foreach (Pedestrian p in All)
-				if (p != this && !p.IsDown && p.mood == Mood.Walk && p.role == Role.Normal && !p.cheering && Vector3.Distance(p.transform.position, transform.position) < 9f)
+			{
+				if (p == this || p.IsDown || p.mood != Mood.Walk || p.role != Role.Normal || p.cheering || p.carriesBasin)
+					continue;
+				float d = Vector3.Distance(p.transform.position, transform.position);
+				if (d < 6f && Random.value < friendJoinChance)
+					p.JoinFight();
+				else if (d < 9f)
 					p.StartMood(Mood.Flee);
+			}
 		}
 		return down;
 	}
@@ -375,6 +385,29 @@ public class Pedestrian : MonoBehaviour
 		talkTimer = 0;
 		StartMood(Mood.Fight);
 		moodTimer = 40f;
+	}
+
+	// A friend saw you hit someone: they come for you
+	public void JoinFight()
+	{
+		FoePerson = null;
+		StartMood(Mood.Fight);
+	}
+
+	// You pulled them out of their car: they fall on the road, then run away or come after you (and their car)
+	public void YankedOut(Vector3 from, bool angry)
+	{
+		Vector3 away = transform.position - from;
+		away.y = 0;
+		if (away.sqrMagnitude > 0.01f)
+			yaw = Quaternion.LookRotation(-away.normalized).eulerAngles.y;
+		Crossing = false;
+		downTimer = 1.6f;
+		ownsYourCar = angry;
+		FoePerson = null;
+		PullTimer = 0;
+		moodAfterGettingUp = angry ? Mood.Fight : Mood.Flee;
+		Voice.Say(gameObject, Lingala.Pick(Lingala.Thief));
 	}
 
 	// Lost a street fight: runs away when they get up
@@ -482,6 +515,12 @@ public class Pedestrian : MonoBehaviour
 			Swing(5f);
 			return;
 		}
+		// Their car: run after it, and pull you out if you stop
+		if (FoePerson == null && ownsYourCar && game.InCar)
+		{
+			ChaseCar(game, dt);
+			return;
+		}
 		// Fight: walk up and punch
 		if (FoePerson == null && (game.InVehicle || distance > 25f))
 		{
@@ -513,6 +552,46 @@ public class Pedestrian : MonoBehaviour
 		{
 			attackCooldown = Random.Range(0.9f, 1.5f);
 			windup = 0.32f;
+		}
+	}
+
+	void ChaseCar(TosakanaGame game, float dt)
+	{
+		CarController car = game.CurrentCar;
+		Vector3 door = car.transform.position - car.transform.right * 1.8f;
+		Vector3 to = door - transform.position;
+		to.y = 0;
+		if (to.magnitude > 45f)
+		{
+			// too far: they give up
+			ownsYourCar = false;
+			mood = Mood.Walk;
+			return;
+		}
+		moodTimer = Mathf.Max(moodTimer, 5f);
+		if (to.magnitude > 1.2f)
+		{
+			transform.position += to.normalized * Mathf.Min(to.magnitude, 5.5f * dt);
+			Face(to);
+			Swing(5.5f);
+			PullTimer = 0;
+			return;
+		}
+		Face(car.transform.position - transform.position);
+		if (Mathf.Abs(car.Speed) > 2f)
+		{
+			PullTimer = 0;
+			Swing(0);
+			return;
+		}
+		// you stopped next to them: they open the door and pull you out
+		PullTimer += dt;
+		if (body != null) body.Do(Body.Move.Windup, Mathf.PingPong(PullTimer * 3f, 1f));
+		if (PullTimer > 1.2f)
+		{
+			PullTimer = 0;
+			ownsYourCar = false;
+			game.PulledOut(this);
 		}
 	}
 

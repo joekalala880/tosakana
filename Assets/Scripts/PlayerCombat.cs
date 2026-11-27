@@ -62,7 +62,7 @@ public class PlayerCombat : MonoBehaviour
 	void Update()
 	{
 		TosakanaGame game = TosakanaGame.Instance;
-		if (game == null || !game.IsPlaying)
+		if (game == null || !game.IsPlaying || BigMap.IsOpenNow)
 			return;
 		float dt = Time.deltaTime;
 		cooldown -= dt;

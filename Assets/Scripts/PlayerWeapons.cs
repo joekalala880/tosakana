@@ -49,7 +49,7 @@ public class PlayerWeapons : MonoBehaviour
 	void Update()
 	{
 		TosakanaGame game = TosakanaGame.Instance;
-		if (game == null || !game.IsPlaying)
+		if (game == null || !game.IsPlaying || BigMap.IsOpenNow)
 		{
 			UpdateUI(false);
 			return;

@@ -21,18 +21,23 @@ public class TargetArrow : MonoBehaviour
 		if (game == null || arrow == null)
 			return;
 		Place target = game.IsPlaying ? game.missions.Target : null;
-		arrow.gameObject.SetActive(target != null && !game.cameraRig.insideView);
+		// no mission to go to: point to your waypoint (Tab = big map)
+		bool waypoint = target == null && game.IsPlaying && BigMap.HasWaypoint;
+		bool any = target != null || waypoint;
+		arrow.gameObject.SetActive(any && !game.cameraRig.insideView);
 		if (hudArrow != null)
-			hudArrow.gameObject.SetActive(target != null);
+			hudArrow.gameObject.SetActive(any);
 		if (hudText != null)
-			hudText.text = target != null ? target.placeName : "";
-		if (target == null)
+			hudText.text = target != null ? target.placeName : waypoint ? "Waypoint" : "";
+		if (!any)
 			return;
+		Vector3 goal = target != null ? target.markerPosition : BigMap.Waypoint;
+		string goalName = target != null ? target.placeName : "Waypoint";
 
 		Transform focus = game.Focus;
 		float h = game.InPlane ? heightInPlane : game.InCar ? heightInCar : heightOnFoot;
 		arrow.position = focus.position + Vector3.up * (h + 0.25f * Mathf.Sin(Time.time * 3f));
-		Vector3 to = target.markerPosition - focus.position;
+		Vector3 to = goal - focus.position;
 		to.y = 0;
 		if (to.sqrMagnitude > 0.01f)
 		{
@@ -49,7 +54,7 @@ public class TargetArrow : MonoBehaviour
 				hudArrow.localEulerAngles = new Vector3(0, 0, -ScreenAngle);
 		}
 		if (hudText != null)
-			hudText.text = target.placeName + "  ·  " + Mathf.RoundToInt(to.magnitude) + " m";
+			hudText.text = goalName + "  ·  " + Mathf.RoundToInt(to.magnitude) + " m";
 
 		// Grow a little when you are far away, so you always see it
 		float s = Mathf.Lerp(1f, 1.6f, Mathf.InverseLerp(20f, 300f, to.magnitude)) * (game.InPlane ? 3f : 1f);

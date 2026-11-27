@@ -49,6 +49,7 @@ before time runs out. Every job pays money.
 | V | view from inside the car / from behind |
 | N | next radio station (in a car) |
 | O | change clothes: sapeur suit / street look |
+| Tab | big map (click = waypoint, right click = remove, wheel = zoom) |
 | M | show the mission card again |
 | In a plane | W/S speed · A/D turn · ↑ or Space climb · ↓ or C dive |
 | Esc | free the mouse (click to take it back) |
@@ -145,6 +146,13 @@ before time runs out. Every job pays money.
 - **Street fights**: sometimes two people near you start fighting each other and others stop to watch. Join in if you want
 - **Kuluna** (street gangs) wait at a corner in Matete, Kimbanseke and Selembao (red dots on the map). Get close and all three attack you. Beat them all: **+$300** (no police stars: it's self-defense). They come back later
 - **Ring ya Kin** at Place du 30 Juin (red dot on the map): walk into the ring to fight for money. 5 fighters, from Bokilo ($400) to Nkoy ya Kin ($1,500). Each win brings a stronger fighter
+
+## Version 13 adds: steal cars, fights that grow, the big map and GPS 🗺️🚗
+- **Carjacking**: press E next to a car with a driver and you pull them out. They fall on the road, shout, then run away... or run after you. Stop the car next to them and they **pull you out** and fight you
+- **Fights grow**: more people hit back when you punch them, and a friend standing close may join the fight
+- **Big map (Tab)**: all of Kinshasa from the sky with the names of the communes and places, and icons for you, your mission, the ring, the kuluna, the airport and the police. The game stops while it is open
+- **Waypoint**: click on the big map to put a purple waypoint. It shows on the mini-map, and the arrow takes you there when you have no mission
+- **GPS**: a line on the roads of the mini-map shows the way: yellow to your mission, purple to your waypoint
 
 ## How to open
 Open the folder in Unity Hub (Unity 2022.3). The game is in `Assets/Scenes/Main.unity`. Press ▶ Play.

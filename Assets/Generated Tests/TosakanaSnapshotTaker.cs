@@ -375,6 +375,40 @@ public class TosakanaSnapshotTaker : MonoBehaviour
 			yield return new WaitForSeconds(0.2f);
 		}
 		Save(cam, rt, folder, "37_ring_fight_kick");
+
+		// Version 13: carjacking, the GPS on the mini-map, the big map
+		game.player.Teleport(new Vector3(8f, 0.05f, -22.6f), 90f);
+		yield return new WaitForSeconds(0.5f);
+		TrafficDriver city = null;
+		foreach (TrafficDriver d in FindObjectsOfType<TrafficDriver>())
+			if (d.enabled && !d.police && d.transform.position.x > -150f && d.transform.position.x < 400f) { city = d; break; }
+		if (city != null)
+		{
+			game.player.Teleport(city.transform.position - city.transform.right * 2.4f, city.transform.eulerAngles.y);
+			yield return null;
+			game.ToggleCar();
+			game.CurrentCar.testBrake = true;
+			rig.SetYaw(city.transform.eulerAngles.y + 230f);
+			rig.SetPitch(14f);
+			yield return new WaitForSeconds(0.35f);
+			Save(cam, rt, folder, "38_carjack_driver_pulled_out");
+			game.CurrentCar.testBrake = false;
+			game.LeaveVehicle();
+			if (game.LastJackedDriver != null) { game.LastJackedDriver.CalmDown(); game.LastJackedDriver.ownsYourCar = false; }
+		}
+		game.player.Teleport(new Vector3(8f, 0.05f, -22.6f), 90f);
+		BigMap.SetWaypoint(new Vector3(406f, 0, -94.6f));
+		missions.StartMission(missions.Find("Gombe"), missions.Find("Lemba"));
+		missions.briefingPanel.SetActive(false);
+		rig.SetYaw(90f);
+		rig.SetPitch(10f);
+		yield return new WaitForSeconds(0.8f);
+		Save(cam, rt, folder, "39_gps_on_the_minimap");
+		BigMap big = game.GetComponent<BigMap>();
+		big.Open();
+		yield return new WaitForSecondsRealtime(0.4f);
+		Save(cam, rt, folder, "40_big_map");
+		big.Close();
 		Finished = true;
 	}
 
